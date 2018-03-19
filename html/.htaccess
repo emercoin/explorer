@@ -1,0 +1,12 @@
+php_flag display_startup_errors on
+php_value display_errors on
+php_flag html_errors on
+AddOutputFilterByType DEFLATE text/text text/html text/plain text/xml text/css application/x-javascript application/javascript application/json
+Options -Indexes 
+RewriteEngine On
+RewriteBase /
+RewriteCond %{REQUEST_URI} !^/(img|.well-known|upload|js|css|usrmgmt|emclnx|walletfiles|bootstrap|captcha|ajax|font-awesome|lang|charts|favicon|favicon\.ico|robots\.txt) [NC]
+RewriteRule .* index.php [L,NC]
+
+SetEnvIf Origin "^http(s)?://(.+\.)?(emcblock\.info|mintr\.org)$" origin_is=$0 
+Header always set Access-Control-Allow-Origin %{origin_is}e env=origin_is

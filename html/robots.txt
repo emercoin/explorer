@@ -1,0 +1,14 @@
+User-agent: *
+Disallow: /tx/
+Disallow: /block/
+Disallow: /address/
+Disallow: /account/
+Disallow: /js/
+Disallow: /css/
+Disallow: /ajax/
+Disallow: /bootstrap/
+Disallow: /font-awesome/
+Disallow: /usrmgmt/
+Disallow: /emclnx/
+Disallow: /upload/
+Disallow: /charts/get_addressbalance.php

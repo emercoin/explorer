@@ -1,0 +1,140 @@
+How-to enable the Emercoin Blockchain Explorer on CentOS
+
+// Lets start
+// Install the OS as you wish. This manual will help you install a basic environment, which is not a best-practice in terms of security.
+// This Explorer uses the LAMP stack. (M = MariaDB or MySQL - I prefer Maria over MySQL)
+
+# sudo su
+# yum update
+# yum install httpd mod_ssl
+# service httpd start
+# yum install php php-mysql php-pdo php-gd php-mbstring
+# vi /etc/php.ini
+    date.timezone = Continent/City
+# vi /etc/yum.repos.d/maria.repo
+    [mariadb]
+    name = MariaDB
+    baseurl = http://yum.mariadb.org/5.5/centos6-amd64
+    gpgkey=https://yum.mariadb.org/RPM-GPG-KEY-MariaDB
+    gpgcheck=1
+# yum install mariadb-server mariadb
+# service mysql start
+# mysql_secure_installation
+# vi /etc/my.cnf //add the following line
+    max_allowed_packet=104857600
+# yum install http://pkgs.repoforge.org/rpmforge-release/rpmforge-release-0.5.3-1.el7.rf.x86_64.rpm
+# yum --enablerepo=epel install phpmyadmin
+# chkconfig httpd on
+# chkconfig mysql on
+# vi /etc/httpd/conf.d/phpMyAdmin.conf
+    # phpMyAdmin - Web based MySQL browser written in php
+    # This config is NOT secure!
+    # But allowing phpMyAdmin to anyone other than localhost should be considered
+    # dangerous unless properly secured by SSL
+
+    Alias /phpMyAdmin /usr/share/phpMyAdmin
+    Alias /phpmyadmin /usr/share/phpMyAdmin
+
+    <Directory /usr/share/phpMyAdmin/>
+       AddDefaultCharset UTF-8
+
+    </Directory>
+
+    <Directory /usr/share/phpMyAdmin/setup/>
+    </Directory>
+
+    <Directory /usr/share/phpMyAdmin/libraries/>
+        Order Deny,Allow
+        Deny from All
+        Allow from None
+    </Directory>
+
+    <Directory /usr/share/phpMyAdmin/setup/lib/>
+        Order Deny,Allow
+        Deny from All
+        Allow from None
+    </Directory>
+
+    <Directory /usr/share/phpMyAdmin/setup/frames/>
+        Order Deny,Allow
+        Deny from All
+        Allow from None
+    </Directory>
+
+
+// Login to <your-ip>/phpmyadmin
+// Create a user (emcchain) and grant full access.
+
+// Import SQL files emcchain.sql, emcchain32.sql to create DB tables.
+// For Blockchain Explorer only emercoin-blockchain-explorer and emercoin-blockchain-explorer32 are required. The emercoin-blockchain-explorer32 DB will store the same data as emercoin-blockchain-explorer but is always 32 blocks behind.
+// If the official DB is on an orphained chain you can quickly reset it by using the emercoin-blockchain-explorer32 instead.
+
+// Download the latest version of emercoin and store all files from emercoin-<current version>/bin/emercoin* under /bin of your server.
+
+# vi /root/.emercoin/emercoin.conf
+rpcuser=emercoinrpc
+rpcpassword=86wGy8zhJwTVPw6Jv6NnGXWGWCHhW4NiF7fFYJzbAkVf
+rpcallowip=127.0.0.1
+server=1
+listen=1
+deamon=1
+
+# crontab -e
+    @reboot emercoind -rescan #automatically start emercoind at system startup
+
+# reboot // wait until the blockchain is in sync. You can check with 'emercoin-cli getinfo'
+
+//encrypt wallet (if you want to use the online wallet)
+# emercoin-cli encryptwallet 'wv59cqm89tu43q8rn923rzxqufh32p'
+# reboot
+
+# mkdir -p /var/www/emercoin-explorer
+//copy both folders 'html' and 'tools' to /var/www/emercoin-explorer
+
+//add these lines to crontab
+    @reboot cd /var/www/emercoin-explorer/tools/; nohup php blockcollector.php
+    @reboot cd /var/www/emercoin-explorer/tools/; nohup php blockcollector128.php
+    @reboot cd /var/www/emercoin-explorer/tools/; nohup php tblockcollector.php
+    @reboot cd /var/www/emercoin-explorer/tools/; nohup php tblockcollector128.php
+
+//create the apache config
+# vi /etc/httpd/conf.d/emercoin.conf
+    LoadModule ssl_module modules/mod_ssl.so
+    Listen 443
+    SSLPassPhraseDialog  builtin
+    SSLSessionCache         shmcb:/var/cache/mod_ssl/scache(512000)
+    SSLSessionCacheTimeout  300
+    SSLMutex default
+    SSLRandomSeed startup file:/dev/urandom  256
+    SSLRandomSeed connect builtin
+    SSLCryptoDevice builtin
+
+    <VirtualHost *:80>
+            RewriteEngine On
+            RewriteCond %{HTTPS} off
+            RewriteRule (.*) https://%{HTTP_HOST}%{REQUEST_URI}
+        ServerName emercoin.mintr.org
+    </VirtualHost>
+
+    <VirtualHost *:443>
+        SSLEngine on
+        SSLCertificateFile /root/cert.pem // you can use the provided self-signed certificate for testing
+        SSLCertificateKeyFile /root/key.pem // you can use the provided self-signed certificate for testing
+        Header always set Strict-Transport-Security "max-age=31556926"
+        ServerName emercoin.mintr.org
+        DocumentRoot /var/www/emercoin-explorer/html
+        <Directory /var/www/emercoin-explorer/html>
+            AllowOverride all
+            Options -MultiViews
+            Order allow,deny
+            allow from all
+        </Directory>
+            LogLevel warn
+            CustomLog /var/log/httpd/emercoin_access.log combined env=!dontlog
+            LogLevel warn
+            ErrorLog /var/log/httpd/emercoin_error.log
+    </VirtualHost>
+
+# service httpd restart
+
+// The website should now be reachable under your URL/IP.

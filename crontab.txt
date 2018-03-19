@@ -1,0 +1,5 @@
+@reboot emercoind -rescan
+@reboot cd /var/www/emercoin-explorer/tools/; nohup php blockcollector.php
+@reboot cd /var/www/emercoin-explorer/tools/; nohup php blockcollector128.php
+@reboot cd /var/www/emercoin-explorer/tools/; nohup php tblockcollector.php
+@reboot cd /var/www/emercoin-explorer/tools/; nohup php tblockcollector128.php 
