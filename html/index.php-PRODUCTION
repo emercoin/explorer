@@ -132,7 +132,7 @@ if ($include_file=="api") {
 
 <body>
 <!-- Fixed navbar -->
-<?php 
+<?php
 	if (!empty($_COOKIE["network"])) {
 		if ($_COOKIE["network"]=="Mainnet") {
 			echo '<nav class="navbar navbar-default">';
@@ -176,7 +176,7 @@ if ($include_file=="api") {
 		<ul class="nav navbar-nav navbar-right">
 			<li class="dropdown">
 				<a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-haspopup="true" aria-expanded="false">
-				<?php 
+				<?php
 					if (!empty($_COOKIE["network"])) {
 						if ($_COOKIE["network"]=="Mainnet") {
 							echo '<span class="label label-primary">Mainnet</span>';
@@ -185,7 +185,7 @@ if ($include_file=="api") {
 						}
 					} else {
 						echo '<span class="label label-primary">Mainnet</span>';
-					}					
+					}
 				?>
 				<span class="caret"></span></a>
 							  <ul class="dropdown-menu">
@@ -246,7 +246,7 @@ if ($include_file=="api") {
 			location.reload();
 		});
 	};
-	
+
 	function networkSwitch(network) {
 		var request = $.ajax({
 			type: "POST",
@@ -274,17 +274,15 @@ if ($include_file=="api") {
 			<?php echo lang('DO_SERVICE'); ?>
 		</button>
 		<br>
-		<sub><a href="https://emercoin.mintr.org/api/help">API</a> | <a href="https://hashflare.io/r/AD872628" target="_blank">Cloud Mining</a> | <a href="https://livecoin.net?from=Livecoin-20e00c47" target="_blank">Emercoin Exchange</a></sub>
+		<sub><a href="https://<?php echo $_SERVER['SERVER_NAME']; ?>/api/help">API</a> | <a href="http://bit.ly/2FSvnpW" target="_blank">Cloud Mining</a> | <a href="http://bit.ly/2IB8hpQ" target="_blank">Emercoin Exchange</a></sub>
 		<div class="collapse" id="collapseDonations">
 		<p class="text-muted"><sub>
 		<b><?php echo lang('DONATION_DONATION'); ?></b><br>
-			[EMC] <a href="emercoin:EZRcD6ZfGJLaYSkKwZYRkrhVGxk1mimG93?amount=0&label=Donation - emercoin.mintr.org">EZRcD6ZfGJLaYSkKwZYRkrhVGxk1mimG93</a><br>
-			[PPC] <a href="peercoin:PTDnVfgcDVk417rLXrokC3nLj44tFZ3Hyw?amount=0&label=Donation - emercoin.mintr.org">PTDnVfgcDVk417rLXrokC3nLj44tFZ3Hyw</a><br>
-			[BTC] <a href="bitcoin:1N1G4Ac8vkvMpMKDksrxuHpkRiC86KsBvX ?amount=0&label=Donation - emercoin.mintr.org">1N1G4Ac8vkvMpMKDksrxuHpkRiC86KsBvX </a><br>
+			[EMC] <a href="emercoin:EWESk7yQCixPGfcRsBt5yRpiVq597ji697?amount=0&label=Donation - Emercoin Explorer">EWESk7yQCixPGfcRsBt5yRpiVq597ji697</a><br>
 
 		<b><?php echo lang('REFERRAL_REFERRAL'); ?></b><br>
-			Start mining Bitcoins from $1.80 per 10GH/s here: <a href="https://hashflare.io/r/AD872628" target="_blank">Hashflare.io</a><br>
-			Sell your Bitcoins for Emercoins here: <a href="https://livecoin.net?from=Livecoin-20e00c47" target="_blank">Livecoin.net</a><br>
+			Start mining Bitcoins here: <a href="http://bit.ly/2FSvnpW" target="_blank">Hashflare.io</a><br>
+			Sell your Bitcoins for Emercoins here: <a href="http://bit.ly/2IB8hpQ" target="_blank">Livecoin.net</a><br>
 		</sub></p>
 		</div>
 		<p class="text-muted">
