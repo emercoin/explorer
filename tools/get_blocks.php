@@ -434,15 +434,22 @@ function getblockinfo($dbconn, $emercoin, $hash) {
 		}
 	}
 
-	if (isset($block['nextblockhash'])){
+	if (isset($block['nextblockhash']) && isset($getinfo['blocks']) && isset($block['height'])){
 		$nextblockhash=$block['nextblockhash'];
-		getblockinfo($dbconn, $emercoin, $nextblockhash);
+		$currentblocks=$getinfo['blocks'];
+		$height=$block['height'];
+			getblockinfo($dbconn, $emercoin, $nextblockhash);
 	}
 }
 
 function getnvsinfo($dbconn, $emercoin, $height) {
 	$inputs="";
-	$valueindb=array();
+	$query="TRUNCATE TABLE nvs";
+
+        if (!$result = $dbconn->query($query)) {
+                printf("Errormessage_select: %s\n", $dbconn->error);
+        }
+/*	$valueindb=array();
 	$query="SELECT * FROM nvs";
 
 	if (!$result = $dbconn->query($query)) {
@@ -455,7 +462,8 @@ function getnvsinfo($dbconn, $emercoin, $height) {
 		$valueindb[addslashes($row['name'])]['registered_at']=$row['registered_at'];
 		$valueindb[addslashes($row['name'])]['expires_at']=$row['expires_at'];
 	}
-	$nvs=$emercoin->name_filter();
+*/	$nvs=$emercoin->name_filter();
+	$count=0;
 	foreach ($nvs as $nv) {
 		$name=addslashes($nv['name']);
 		$type="";
@@ -471,20 +479,35 @@ function getnvsinfo($dbconn, $emercoin, $height) {
 		}
 		$registered_at=$nv['registered_at'];
 		$expires_at=($height+$nv['expires_in']);
-		if (!array_key_exists($name,$valueindb)) {
-				$inputs.="('$name', '$value', '$type', '$isbase64', $registered_at, $expires_at),";
-		} else {
-			if ($value!=$valueindb[$name]['value']||$registered_at!=$valueindb[$name]['registered_at']||$expires_at!=$valueindb[$name]['expires_at']) {
+//		if (!array_key_exists($name,$valueindb)) {
+				$inputs.="('$name', '$value', '$type', '$isbase64', '$registered_at', '$expires_at'),";
+/*		} else {
+				if ($value!=$valueindb[$name]['value']||$registered_at!=$valueindb[$name]['registered_at']||$expires_at!=$valueindb[$name]['expires_at']) {
 				$query="UPDATE nvs
 				SET value='$value',
 				isbase64='$isbase64',
-				registered_at=$registered_at,
-				expires_at=$expires_at
+				registered_at='$registered_at',
+				expires_at='$expires_at'
 				WHERE name='$name'";
 				if (!$dbconn->query($query)) {
 					printf("Errormessage_update: %s\n", $dbconn->error);
 				}
 			}
+		}
+*/
+		$count++;
+		if ($count == 10000) {
+			$inputs=rtrim($inputs, ",");
+			$inputs.=";";
+			$query="INSERT INTO nvs
+			(name, value, type, isbase64, registered_at, expires_at)
+			VALUES".$inputs;
+			//echo $query;
+			if (!$dbconn->query($query)) {
+				printf("Errormessage_insert: %s\n", $dbconn->error);
+			}
+			$inputs='';
+			$count=0;
 		}
 	}
 	if ($inputs!='') {
@@ -493,6 +516,7 @@ function getnvsinfo($dbconn, $emercoin, $height) {
 		$query="INSERT INTO nvs
 		(name, value, type, isbase64, registered_at, expires_at)
 		VALUES".$inputs;
+		//echo $query;
 		if (!$dbconn->query($query)) {
 			printf("Errormessage_insert: %s\n", $dbconn->error);
 		}
@@ -836,7 +860,7 @@ function gettxoutput($dbconn, $emercoin, $txid, $txdbid, $blockid, $time, $recei
 					}
 					$receiveaddress[$address]["time"]=$time;
 			}
-			$inputs.="($blockid, $txdbid, '$value', $n, '$asm', '$hex', $reqsigs, '$type', '$address'),";			
+			$inputs.="($blockid, $txdbid, '$value', $n, '$asm', '$hex', $reqsigs, '$type', '$address'),";
 			$values["valueout"]=$values["valueout"]+$value;
 			$values["countvout"]++;
 		}
@@ -852,9 +876,10 @@ function gettxoutput($dbconn, $emercoin, $txid, $txdbid, $blockid, $time, $recei
 }
 
 
+
 // genesis block
 $hash="00000000bcccd459d036a588d1008fce8da3754b205736f32ddfd35350e84c2d";
-$query="SELECT hash FROM blocks ORDER BY id DESC LIMIT 32";
+$query="SELECT hash FROM blocks ORDER BY id DESC LIMIT 10";
 $result = $dbconn->query($query);
 $dbconn->error;
 while($row = $result->fetch_assoc())

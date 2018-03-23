@@ -1,5 +1,4 @@
 <?php
-require_once __DIR__ . '/../tools/include.php';
 $query="SELECT MAX(height) AS height, MAX(time) AS time FROM blocks";
 $result = $dbconn->query($query);
 while($row = $result->fetch_assoc())
