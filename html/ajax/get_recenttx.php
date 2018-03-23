@@ -1,4 +1,4 @@
-	<?php 
+	<?php
 if (!empty($_COOKIE["lang"])) {
 	$lang=$_COOKIE["lang"];
 	require("../lang/".$lang.".php");
@@ -22,8 +22,8 @@ if (!empty($_COOKIE["lang"])) {
 			$numberOfUnits = floor($time / $unit);
 			return $numberOfUnits.' '.$text.(($numberOfUnits>1)?'s':'');
 		}
-	}	
-	
+	}
+
 	if (!empty($_COOKIE["network"])) {
 	$network=$_COOKIE["network"];
 	if ($network=='Mainnet') {
@@ -35,36 +35,42 @@ if (!empty($_COOKIE["lang"])) {
 	setcookie("network","Mainnet",time()+(3600*24*14), "/");
 	require_once __DIR__ . '/../tools/include.php';
 }
-	
+
 	echo '<div class="panel-heading"><b>'.lang('RECENT_TRANSACTIONS').'</b></div>
 	<table class="table">
 	<thead>
 	<tr><th>'.lang('TX_ID').'</th><th>'.lang('VALUE_EMC').'</th><th></th></tr>
 	</thead>
 	<tbody>';
-	
-	$query = "SELECT blockid FROM transactions ORDER BY blockid DESC LIMIT 1";
-	$result = $dbconn->query($query);
-	while($row = $result->fetch_assoc())
-	{
-		$block_from_height=$row['blockid'];
-	}
-	$block_to_height=$block_from_height-9;
-	if ($block_to_height<=0) {
-		$block_to_height=0;
-	}
-	$showBlocksQuery = "SELECT txid,blockid,valueout FROM transactions WHERE blockid >= '$block_to_height' AND blockid <= '$block_from_height' AND fee > 0 ORDER BY blockid DESC";
+	$showBlocksQuery = "SELECT
+			t.txid,
+			t.valueout,
+			(c.blockid-t.blockid)+1 AS confirmations
+		FROM transactions t
+		JOIN (SELECT DISTINCT blockid
+				FROM transactions
+				WHERE fee > 0
+				ORDER BY blockid DESC
+				LIMIT 9) AS b
+		ON b.blockid = t.blockid AND t.fee > 0
+		CROSS JOIN (SELECT blockid
+				FROM transactions
+				WHERE fee > 0
+				ORDER BY blockid DESC
+				LIMIT 1) AS c
+		WHERE (c.blockid-t.blockid)+1 <= 9
+		ORDER BY t.blockid DESC";
 	$result = $dbconn->query($showBlocksQuery);
 	while($row = $result->fetch_assoc())
 	{
 		$txid=$row['txid'];
 		$tx_id_short = substr($txid, 0, 4)."...".substr($txid, -4);
-		$confirmations=bcadd(bcsub($block_from_height,$row["blockid"],0),1,0);
+		$confirmations=$row['confirmations'];
 		if ($confirmations<3) {$labelcolor="danger";};
 		if ($confirmations>=3 && $confirmations<6) {$labelcolor="warning";};
 		if ($confirmations>=6) {$labelcolor="success";};
 		echo '<tr><td><a href="/tx/'.$txid.'" class="btn btn-primary btn-xs" role="button">'.$tx_id_short.'</a></td><td>'.$row["valueout"].'</td><td><span class="label label-'.$labelcolor.'">'.$confirmations.'</span></td></tr>';
 	}
 	echo "</tbody></table>";
-	
+
 	?>

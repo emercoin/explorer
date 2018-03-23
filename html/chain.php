@@ -1,4 +1,4 @@
-<?php 
+<?php
 //check current chain height
 
 $query = "SELECT height FROM blocks ORDER BY height DESC LIMIT 1";
@@ -46,18 +46,13 @@ if (isset($_SERVER['REQUEST_URI'])) {
 
 
 if (!isset($block_from_height) || !isset($block_to_height)) {
-	$query = "SELECT height FROM blocks ORDER BY height DESC LIMIT 1";
-	$result = $dbconn->query($query);
-	while($row = $result->fetch_assoc())
-	{
-		$block_from_height=$row['height'];
-	}
+	$block_from_height=$block_current_height;
 	$block_to_height=$block_from_height-14;
 	if ($block_to_height<=0) {
 		$block_to_height=0;
 	}
 }
-	
+
 if ($block_from_height>$block_to_height) {
 	$order_block_by="DESC";
 	$showBlocksQuery = "SELECT * FROM blocks WHERE height >= '$block_to_height' AND height <= '$block_from_height' ORDER BY height $order_block_by";
@@ -82,7 +77,7 @@ if ($block_from_height>$block_to_height) {
 			 AND blocks.height >= '$block_from_height'
 			 WHERE tx.fee < '0'
 			 ORDER BY blocks.height $order_block_by";
-}	
+}
 
 function TrimTrailingZeroes($nbr) {
     return strpos($nbr,'.')!==false ? rtrim(rtrim($nbr,'0'),'.') : $nbr;
@@ -107,9 +102,9 @@ function timeAgo ($time) {
         $numberOfUnits = floor($time / $unit);
         return $numberOfUnits.' '.$text.(($numberOfUnits>1)?'':'');
     }
-}	
+}
 ?>
-	
+
 
 <div class="container">
 
@@ -146,7 +141,7 @@ $(document).ready(function() {
 	    "oLanguage": {
 		  "sSearch": "<?php echo lang('SEARCH_SEARCH'); ?>:"
 		},
-		"stateSave": false, 
+		"stateSave": false,
         "paging":   false,
         "ordering": true,
         "info":     false,
@@ -180,9 +175,9 @@ $(document).ready(function() {
 		window.location.href = '/chain/'+from+'-'+to;
 	};
 	</script>
-	
+
 <p>
-	<?php 
+	<?php
 	if ($diff>=100) {
 	echo '<nav>
 		<ul class="pager">
@@ -239,7 +234,7 @@ $(document).ready(function() {
 		</tr>
 	</tfoot>
 	<tbody>
-	<?php 
+	<?php
 	$showPoSArray=array();
 	$result = $dbconn->query($showPoSQuery);
 	while($row = $result->fetch_assoc())
@@ -249,7 +244,7 @@ $(document).ready(function() {
 		$showPoSArray[$row['height']]['avgcoindays']=$row['avgcoindaysdestroyed'];
 	}
 
-	
+
 	$result = $dbconn->query($showBlocksQuery);
 	while($row = $result->fetch_assoc())
 	{
@@ -280,7 +275,7 @@ $(document).ready(function() {
 			$stake_avgcoindays=$showPoSArray[$block_height]['avgcoindays'];
 			$stake_avgcoindays=TrimTrailingZeroes(number_format($stake_avgcoindays,2));
 		}
-		
+
 		$block_read_time=date("Y-m-d G:i:s",$block_time);
 		if (strpos($block_flag,'proof-of-work') !== false) {
 			$block_flag="PoW";
@@ -292,7 +287,7 @@ $(document).ready(function() {
 		if ($block_flag=="PoS") {
 			$block_fee=bcadd($block_fee,$block_mint,8);
 		}
-		
+
 		echo '
 		<tr>
 			<td><a href="/block/'.$block_hash.'" class="btn btn-primary btn-xs" role="button">'.$block_height.'</a></td>
@@ -318,14 +313,14 @@ $(document).ready(function() {
 	?>
 	</tbody>
 	</table>
-	
+
 	<nav>
 		<ul class="pager">
 			<li class="previous"><a href="javascript:sendPrevChainValues();"><span aria-hidden="true"><i class="fa fa-arrow-circle-left"></i></span> <?php echo lang('OLDER_OLDER'); ?></a></li>
 			<li class="next"><a href="javascript:sendNextChainValues();"><?php echo lang('NEWER_NEWER'); ?> <span aria-hidden="true"><i class="fa fa-arrow-circle-right"></i></span></a></li>
 		</ul>
 	</nav>
-	
+
 	<script>
 	function sendPrevChainValues() {
 		var from = $('#inputFromBlock').val();
@@ -348,7 +343,7 @@ $(document).ready(function() {
 		window.location.href = '/chain/'+from+'-'+to;
 	};
 	</script>
-	
+
 	<script>
 	function sendNextChainValues() {
 		var from = $('#inputFromBlock').val();

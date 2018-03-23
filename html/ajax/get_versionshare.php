@@ -70,6 +70,14 @@ if (!empty($_COOKIE["lang"])) {
 			$version="0.6.3 (Merged Mining)";
 			$barcount+=$count;
 		}
+		if ($version == 43646983) {
+			$version="0.6.4";
+			$barcount+=$count;
+		}
+		if ($version == 43647239) {
+			$version="0.6.4 (Merged Mining)";
+			$barcount+=$count;
+		}
 		echo '<tr><td>'.$version.'</td><td>'.$count.' %</td></tr>';
 	}
 		?>

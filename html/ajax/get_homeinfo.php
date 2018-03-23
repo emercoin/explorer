@@ -1,4 +1,4 @@
-	<?php 
+	<?php
 if (!empty($_COOKIE["network"])) {
 	$network=$_COOKIE["network"];
 	if ($network=='Mainnet') {
@@ -19,7 +19,21 @@ if (!empty($_COOKIE["lang"])) {
 	require("../lang/en.php");
 }
 
-	$query = "SELECT * FROM blocks ORDER BY height DESC LIMIT 1";
+	$query = "SELECT 	b.height,
+										b.hash,
+										b.total_coins,
+										b.numtx,
+										b.valueout,
+										pow.difficulty AS 'pow',
+										pos.difficulty AS 'pos'
+						FROM blocks b
+						CROSS JOIN (SELECT difficulty
+									FROM blocks WHERE flags LIKE '%proof-of-work%'
+									ORDER BY height DESC LIMIT 1) AS pow
+						CROSS JOIN (SELECT difficulty
+									FROM blocks WHERE flags LIKE '%proof-of-stake%'
+									ORDER BY height DESC LIMIT 1) AS pos
+						ORDER BY height DESC LIMIT 1";
 	$result = $dbconn->query($query);
 	while($row = $result->fetch_assoc())
 	{
@@ -28,21 +42,8 @@ if (!empty($_COOKIE["lang"])) {
 		$block_total_coins=$row['total_coins'];
 		$block_numtx=$row['numtx'];
 		$block_valueout=$row['valueout'];
-	}
-	
-	$query = "SELECT difficulty FROM blocks WHERE flags LIKE '%proof-of-work%' ORDER BY height DESC LIMIT 1";
-	$result = $dbconn->query($query);
-	while($row = $result->fetch_assoc())
-	{
-		$pow_difficulty=$row['difficulty'];
-	}
-	
-	$query = "SELECT difficulty FROM blocks WHERE flags LIKE '%proof-of-stake%' ORDER BY height DESC LIMIT 1";
-	$result = $dbconn->query($query);
-	$pos_difficulty=1;
-	while($row = $result->fetch_assoc())
-	{
-		$pos_difficulty=$row['difficulty'];
+		$pow_difficulty=$row['pow'];
+		$pos_difficulty=$row['pos'];
 	}
 
 function TrimTrailingZeroes($nbr) {
