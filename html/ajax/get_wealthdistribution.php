@@ -1,5 +1,5 @@
 		<?php
-	
+
 		if (!empty($_COOKIE["lang"])) {
 			$lang=$_COOKIE["lang"];
 			require("../lang/".$lang.".php");
@@ -9,7 +9,7 @@
 		}
 
 	?>
-	
+
 	<h3><?php echo lang('WEALTH_DISTRIBUTION'); ?></h3>
 	<?php
 	if (!empty($_COOKIE["network"])) {
@@ -21,14 +21,14 @@
 	}
 } else {
 	setcookie("network","Mainnet",time()+(3600*24*14), "/");
-	require_once __DIR__ . '/../tools/include.php';
+	require_once __DIR__ . '/../../tools/include.php';
 }
 	function TrimTrailingZeroes($nbr) {
 		return strpos($nbr,'.')!==false ? rtrim(rtrim($nbr,'0'),'.') : $nbr;
 	}
-	
+
 	$block_total_coins=$_GET['total_coins'];
-	
+
 	$query="SELECT SUM( balance ) AS balance
 		FROM address
 		GROUP BY address
@@ -40,14 +40,14 @@
 	$top100=0;
 	$top1000=0;
 	while($row = $result->fetch_assoc())
-	{	
-		if ($count<=10) {	
+	{
+		if ($count<=10) {
 			$top10=($top10+$row['balance']);
 		}
-		if ($count>10 && $count<=100) {	
+		if ($count>10 && $count<=100) {
 			$top100=($top100+$row['balance']);
 		}
-		if ($count>100 && $count<=1000) {	
+		if ($count>100 && $count<=1000) {
 			$top1000=($top1000+$row['balance']);
 		}
 		$count++;
@@ -133,4 +133,3 @@ $(function () {
 			</div>
 			<div id="addresschart" class="col-md-7" style="min-width: 310px; height: 400px; max-width: 600px; margin: 0 auto"></div>
 		</div>
-		

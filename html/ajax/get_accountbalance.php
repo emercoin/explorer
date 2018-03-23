@@ -8,9 +8,9 @@ if (!empty($_COOKIE["network"])) {
 	}
 } else {
 	setcookie("network","Mainnet",time()+(3600*24*14), "/");
-	require_once __DIR__ . '/../tools/include.php';
+	require_once __DIR__ . '/../../tools/include.php';
 }
-$uriaddress=$_GET['address'];
+$uriaddress=mysqli_real_escape_string($dbconn, $_GET['address']);
 
 if (!empty($_COOKIE["lang"])) {
 	$lang=$_COOKIE["lang"];
@@ -32,7 +32,7 @@ $query = "SELECT total_coins FROM blocks ORDER BY height DESC LIMIT 1";
 	}
 
 
-$query="SELECT account FROM address WHERE address='$uriaddress'";	
+$query="SELECT account FROM address WHERE address='$uriaddress'";
 	$result = $dbconn->query($query);
 	while($row = $result->fetch_assoc())
 	{
@@ -41,7 +41,7 @@ $query="SELECT account FROM address WHERE address='$uriaddress'";
 $addressbalances=array();
 $balancetotal=0;
 if (isset($account)) {
-$query="SELECT address, balance FROM address WHERE account='$account'";	
+$query="SELECT address, balance FROM address WHERE account='$account'";
 	$result = $dbconn->query($query);
 	while($row = $result->fetch_assoc())
 	{
@@ -49,8 +49,8 @@ $query="SELECT address, balance FROM address WHERE account='$account'";
 		$balance=$row['balance'];
 		$addressbalances[$address]=$balance;
 		$balancetotal+=$balance;
-	}	
-}	
+	}
+}
 arsort($addressbalances);
 
 echo'

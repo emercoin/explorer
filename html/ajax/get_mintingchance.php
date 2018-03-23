@@ -1,6 +1,6 @@
 <?php
-error_reporting(E_ALL); 
-ini_set("display_errors", 1); 
+error_reporting(E_ALL);
+ini_set("display_errors", 1);
 
 if (!empty($_COOKIE["lang"])) {
 	$lang=$_COOKIE["lang"];
@@ -20,12 +20,12 @@ if (isset($_GET['address'])) {
 	}
 } else {
 	setcookie("network","Mainnet",time()+(3600*24*14), "/");
-	require_once __DIR__ . '/../tools/include.php';
+	require_once __DIR__ . '/../../tools/include.php';
 }
 	$difficulty=$emercoin->getdifficulty();
 	$difficulty=$difficulty['proof-of-stake'];
 	$uriaddress=$_GET['address'];
-	
+
 	function TrimTrailingZeroes($nbr) {
 		return strpos($nbr,'.')!==false ? rtrim(rtrim($nbr,'0'),'.') : $nbr;
 	}
@@ -54,12 +54,12 @@ if (isset($_GET['address'])) {
 			$unspend_coins[$row['id']]['txid']=$row['txid'];
 		} else {
 			unset($unspend_coins[$row['id']]);
-		}	
+		}
 		//echo $row['id']." ".$row['value']." ".$row['time']." ".$row['vin']."<br>";
 	}
 	echo '<table class="table">
 			<tr><th>'.lang("RECEIVED_TX").'</th><th>'.lang("COINS_COINS").'</th><th>'.lang("AGE_AGE").' ['.lang("DAYS_DAYS").']</th><th>'.lang("AVG_AGE").' [<small><sup>'.lang("DAYS_DAYS").'</sup>/<sub>'.lang("COIN_COIN").'</sub></small>]</th><th>'.lang("MINTING_CHANCE").' <small><sub>'.lang("WITHIN_H").'</sub></small> [%]</th><th>'.lang("ESTIMATED_REWARD").' [EMC]</th>';
-	
+
 	foreach ($unspend_coins as $coins) {
 		$value=$coins['value'];
 		$time=$coins['time'];
@@ -75,9 +75,9 @@ if (isset($_GET['address'])) {
 			$reward=bcmul(bcdiv($coinage,365,8),0.06,2);
 		}
 		$probBlockToday = calculateProbBlockToday($avgcoinagelong, $value, $difficulty);
-		
+
 		echo '<tr><td><a href="/tx/'.$tx_id.'" class="btn btn-primary btn-xs" role="button">'.$tx_id_short.'</a></td><td>'.$value.'</td><td>'.round($coinage,2).'</td><td>'.$avgcoinage.'</td><td class="text-left">'.$probBlockToday.'</td><td>'.$reward.'</tr>';
-	}	
+	}
 
 }
 

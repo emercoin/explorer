@@ -1,5 +1,5 @@
 	<?php
-	
+
 		if (!empty($_COOKIE["lang"])) {
 			$lang=$_COOKIE["lang"];
 			require("../lang/".$lang.".php");
@@ -9,7 +9,7 @@
 		}
 
 	?>
-	
+
 	<h3><?php echo lang('TOP_100ADDRESSES'); ?></h3>
 	<table id="address_table" class="table table-striped">
 	<thead>
@@ -26,7 +26,7 @@
 	}
 } else {
 	setcookie("network","Mainnet",time()+(3600*24*14), "/");
-	require_once __DIR__ . '/../tools/include.php';
+	require_once __DIR__ . '/../../tools/include.php';
 }
 	function TrimTrailingZeroes($nbr) {
 		return strpos($nbr,'.')!==false ? rtrim(rtrim($nbr,'0'),'.') : $nbr;
@@ -46,9 +46,9 @@
 			$numberOfUnits = floor($time / $unit);
 			return $numberOfUnits.' '.$text.(($numberOfUnits>1)?'':'');
 		}
-	}	
+	}
 	$block_total_coins=$_GET['total_coins'];
-	
+
 		$countaddress=1;
 		$query = "SELECT address, balance, last_sent, last_received, account
 		FROM address

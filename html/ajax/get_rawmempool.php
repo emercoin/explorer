@@ -1,5 +1,5 @@
-	<?php 
-	
+	<?php
+
 if (!empty($_COOKIE["lang"])) {
 	$lang=$_COOKIE["lang"];
 	require("../lang/".$lang.".php");
@@ -23,8 +23,8 @@ if (!empty($_COOKIE["lang"])) {
 			$numberOfUnits = floor($time / $unit);
 			return $numberOfUnits.' '.$text.(($numberOfUnits>1)?'s':'');
 		}
-	}	
-	
+	}
+
 	if (!empty($_COOKIE["network"])) {
 	$network=$_COOKIE["network"];
 	if ($network=='Mainnet') {
@@ -34,10 +34,10 @@ if (!empty($_COOKIE["lang"])) {
 	}
 } else {
 	setcookie("network","Mainnet",time()+(3600*24*14), "/");
-	require_once __DIR__ . '/../tools/include.php';
+	require_once __DIR__ . '/../../tools/include.php';
 }
 	$mempool=$emercoin->getrawmempool();
-	
+
 	echo '<div class="panel-heading"><b>'.lang('UNCONFIRMED_TRANSACTIONS').'</b></div>
 	<table class="table">
 	<thead>
@@ -45,10 +45,10 @@ if (!empty($_COOKIE["lang"])) {
 	</thead>
 	<tbody>';
 	foreach ($mempool as $rawtx) {
-		
+
 			$txhash=$emercoin->getrawtransaction($rawtx,1);
 			$tx_id_short = substr($txhash['txid'], 0, 4)."...".substr($txhash['txid'], -4);
-			
+
 		try {
 			$values=array();
 			$values["valuein"]=0;
@@ -56,7 +56,7 @@ if (!empty($_COOKIE["lang"])) {
 				$values["time"]=$txhash["time"];
 			} else {
 				$values["time"]="";
-			}		
+			}
 			$coindaysdestroyed=0;
 			$values["coindaysdestroyed"]=0;
 			$avgcoindaysdestroyed=0;
@@ -134,11 +134,11 @@ if (!empty($_COOKIE["lang"])) {
 				$values["countvin"]++;
 			}
 			$values["sentaddressarray"]=$sentaddress;
-			
+
 			//echo $values["valuein"];
 		} catch (Exception $e) {}
-	
-	
+
+
 		try {
 			$values["valueout"]=0;
 			$values["countvout"]=0;
@@ -200,5 +200,5 @@ if (!empty($_COOKIE["lang"])) {
 	if (!isset($txhash)) {
 		echo lang('THERE_TRANSACTIONS');
 	}
-	
+
 	?>
