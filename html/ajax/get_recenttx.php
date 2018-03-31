@@ -45,7 +45,7 @@ if (!empty($_COOKIE["lang"])) {
 	$showBlocksQuery = "SELECT
 			t.txid,
 			t.valueout,
-			(c.blockid-t.blockid)+1 AS confirmations
+			(c.id-t.blockid)+1 AS confirmations
 		FROM transactions t
 		JOIN (SELECT DISTINCT blockid
 				FROM transactions
@@ -53,12 +53,11 @@ if (!empty($_COOKIE["lang"])) {
 				ORDER BY blockid DESC
 				LIMIT 9) AS b
 		ON b.blockid = t.blockid AND t.fee > 0
-		CROSS JOIN (SELECT blockid
-				FROM transactions
-				WHERE fee > 0
-				ORDER BY blockid DESC
+		CROSS JOIN (SELECT id
+				FROM blocks
+				ORDER BY id DESC
 				LIMIT 1) AS c
-		WHERE (c.blockid-t.blockid)+1 <= 9
+		WHERE (c.id-t.blockid)+1 <= 9
 		ORDER BY t.blockid DESC";
 	$result = $dbconn->query($showBlocksQuery);
 	while($row = $result->fetch_assoc())
