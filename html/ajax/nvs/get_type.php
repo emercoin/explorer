@@ -16,7 +16,7 @@ if (!empty($_COOKIE["network"])) {
 $typeArray=[];
 	$query = "SELECT DISTINCT type
 		FROM nvs
-		WHERE expires_at < (SELECT height FROM blocks ORDER BY height DESC LIMIT 1)";
+		WHERE expires_at > (SELECT height FROM blocks ORDER BY height DESC LIMIT 1)";
 	$result = $dbconn->query($query);
 	while($row = $result->fetch_assoc())
 	{
