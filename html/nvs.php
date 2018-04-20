@@ -114,8 +114,8 @@ if ($type=="N/A"||$type=="n/a") {
     <div id="collapseOne" class="panel-collapse collapse in" role="tabpanel" aria-labelledby="headingOne">
      <div class="panel-body">
      <form class="form-inline">
-          <input type="text" id="inputType" size="10" class="form-control autocomplete" placeholder="<?php echo lang('TYPE_TYPE'); ?>" value="<?php echo $type; ?>">
-		  <input type="text" id="inputName" size="30" class="form-control" placeholder="<?php echo lang('NAME_NAME'); ?>" value="<?php echo $name; ?>">
+          <input type="text" id="inputType" size="8" class="form-control autocomplete" placeholder="<?php echo lang('TYPE_TYPE'); ?>" value="<?php echo $type; ?>">
+		  <input type="text" id="inputName" size="25" class="form-control" placeholder="<?php echo lang('NAME_NAME'); ?>" value="<?php echo $name; ?>">
 		  <input type="text" id="inputValue" size="30" class="form-control" placeholder="<?php echo lang('VALUE_VALUENVS'); ?>" value="<?php echo $value; ?>">
           <a class="btn btn-primary" onclick="javascript:sendParameters(<?php echo "'".$results."'"; ?>, <?php echo $show_na; ?>, <?php echo $show_valid; ?>);" role="button"><?php echo lang('SEARCH_SEARCH'); ?></a>
 
