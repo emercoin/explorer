@@ -1,3 +1,31 @@
+<style>
+.ui-autocomplete {
+    position: absolute;
+    z-index: 1000;
+    cursor: default;
+    padding: 0;
+    margin-top: 2px;
+    list-style: none;
+    background-color: #ffffff;
+    border: 1px solid #ccc
+    -webkit-border-radius: 5px;
+       -moz-border-radius: 5px;
+            border-radius: 5px;
+    -webkit-box-shadow: 0 5px 10px rgba(0, 0, 0, 0.2);
+       -moz-box-shadow: 0 5px 10px rgba(0, 0, 0, 0.2);
+            box-shadow: 0 5px 10px rgba(0, 0, 0, 0.2);
+}
+.ui-autocomplete > li {
+  padding: 3px 20px;
+}
+.ui-autocomplete > li.ui-state-focus {
+  background-color: #DDD;
+}
+.ui-helper-hidden-accessible {
+  display: none;
+}
+</style>
+
 <?php
 $query="SELECT MAX(height) AS height, MAX(time) AS time FROM blocks";
 $result = $dbconn->query($query);
@@ -18,7 +46,7 @@ $type="";
 $name="";
 $value="";
 $results=25;
-$show_na=0;
+$show_na=1;
 $show_valid=1;
 $index=0;
 if (isset($_SERVER['REQUEST_URI'])) {
@@ -86,7 +114,7 @@ if ($type=="N/A"||$type=="n/a") {
     <div id="collapseOne" class="panel-collapse collapse in" role="tabpanel" aria-labelledby="headingOne">
      <div class="panel-body">
      <form class="form-inline">
-          <input type="text" id="inputType" size="10" class="form-control" placeholder="<?php echo lang('TYPE_TYPE'); ?>" value="<?php echo $type; ?>">
+          <input type="text" id="inputType" size="10" class="form-control autocomplete" placeholder="<?php echo lang('TYPE_TYPE'); ?>" value="<?php echo $type; ?>">
 		  <input type="text" id="inputName" size="30" class="form-control" placeholder="<?php echo lang('NAME_NAME'); ?>" value="<?php echo $name; ?>">
 		  <input type="text" id="inputValue" size="30" class="form-control" placeholder="<?php echo lang('VALUE_VALUENVS'); ?>" value="<?php echo $value; ?>">
           <a class="btn btn-primary" onclick="javascript:sendParameters(<?php echo "'".$results."'"; ?>, <?php echo $show_na; ?>, <?php echo $show_valid; ?>);" role="button"><?php echo lang('SEARCH_SEARCH'); ?></a>
@@ -169,6 +197,21 @@ if ($type=="N/A"||$type=="n/a") {
 		var value = value.replace(/\//g, "&\\&");
 		window.location.href = '/nvs/'+type+'/'+name+'/'+value+'/'+results+'/'+show_na+'/'+show_valid;
 	};
+
+
+	$(function() {
+  var availableTags = [];
+	$.ajax({
+	url: "/ajax/nvs/get_type.php"
+	})
+	.done(function( response ) {
+			availableTags=JSON.parse(response);
+			$(".autocomplete").autocomplete({
+				source: availableTags
+			});
+	});
+
+});
 </script>
 
 <p>
