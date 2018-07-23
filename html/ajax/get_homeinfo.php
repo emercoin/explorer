@@ -31,6 +31,7 @@ if (!empty($_COOKIE["lang"])) {
 		$pow_difficulty="";
 		$pos_difficulty="";
 		$difficultyFlag = "PoW";
+		$txSkipValue = 1;
 
 $block_hash=$emercoin->getbestblockhash();
 $block=$emercoin->getblock($block_hash);
@@ -38,6 +39,7 @@ $difficulty=$block['difficulty'];
 $flags=$block['flags'];
 if ($flags == "proof-of-stake") {
 	$difficultyFlag = "PoS";
+	$txSkipValue = 2;
 }
 $emc_info=$emercoin->getinfo();
 $block_total_coins=$emc_info['moneysupply'];
@@ -45,13 +47,16 @@ $block_height=$emc_info['blocks'];
 $txs=$block['tx'];
 foreach ($txs as $tx) {
 	$tx_full=$emercoin->getrawtransaction($tx,1);
+	$block_numtx++;
 	foreach ($tx_full['vin'] as $vin) {
-		$block_numtx++;
 		if (isset($vin['txid'])){
-			$block_valueout+=getTX_vout_value($emercoin, $vin['txid'], $vin['vout']);
+			if ($block_numtx > $txSkipValue) {
+				$block_valueout+=getTX_vout_value($emercoin, $vin['txid'], $vin['vout']);
+			}
 		}
 	}
 }
+$block_numtx = $block_numtx-$txSkipValue;
 
 function TrimTrailingZeroes($nbr) {
     return strpos($nbr,'.')!==false ? rtrim(rtrim($nbr,'0'),'.') : $nbr;
