@@ -123,7 +123,7 @@ if (!empty($_COOKIE["lang"])) {
 			</div>
 			<p class="text-muted">
 			<sub><?php echo lang('INFO_FEEDBACK'); ?>: <a href="https://github.com/emercoin-explorer/emercoin-explorer" target="_blank">GitHub</a> | <a href="mailto:explorer@emercoin.com">E-Mail</a></sub><br>
-			<sub>v.1.8.7.3</sub></p>
+			<sub>v.1.8.7.4</sub></p>
 	      </div>
 	</footer>
 </body>
