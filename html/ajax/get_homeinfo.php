@@ -1,4 +1,7 @@
 	<?php
+	ini_set('display_startup_errors', 1);
+ini_set('display_errors', 1);
+error_reporting(-1);
 if (!empty($_COOKIE["network"])) {
 	$network=$_COOKIE["network"];
 	if ($network=='Mainnet') {
@@ -19,32 +22,36 @@ if (!empty($_COOKIE["lang"])) {
 	require("../lang/en.php");
 }
 
-	$query = "SELECT 	b.height,
-										b.hash,
-										b.total_coins,
-										b.numtx,
-										b.valueout,
-										pow.difficulty AS 'pow',
-										pos.difficulty AS 'pos'
-						FROM blocks b
-						CROSS JOIN (SELECT difficulty
-									FROM blocks WHERE flags LIKE '%proof-of-work%'
-									ORDER BY height DESC LIMIT 1) AS pow
-						CROSS JOIN (SELECT difficulty
-									FROM blocks WHERE flags LIKE '%proof-of-stake%'
-									ORDER BY height DESC LIMIT 1) AS pos
-						ORDER BY height DESC LIMIT 1";
-	$result = $dbconn->query($query);
-	while($row = $result->fetch_assoc())
-	{
-		$block_height=$row['height'];
-		$block_hash=$row['hash'];
-		$block_total_coins=$row['total_coins'];
-		$block_numtx=$row['numtx'];
-		$block_valueout=$row['valueout'];
-		$pow_difficulty=$row['pow'];
-		$pos_difficulty=$row['pos'];
+
+		$block_height="";
+		$block_hash="";
+		$block_total_coins="";
+		$block_numtx="0";
+		$block_valueout="0";
+		$pow_difficulty="";
+		$pos_difficulty="";
+		$difficultyFlag = "PoW";
+
+$block_hash=$emercoin->getbestblockhash();
+$block=$emercoin->getblock($block_hash);
+$difficulty=$block['difficulty'];
+$flags=$block['flags'];
+if ($flags == "proof-of-stake") {
+	$difficultyFlag = "PoS";
+}
+$emc_info=$emercoin->getinfo();
+$block_total_coins=$emc_info['moneysupply'];
+$block_height=$emc_info['blocks'];
+$txs=$block['tx'];
+foreach ($txs as $tx) {
+	$tx_full=$emercoin->getrawtransaction($tx,1);
+	foreach ($tx_full['vin'] as $vin) {
+		$block_numtx++;
+		if (isset($vin['txid'])){
+			$block_valueout+=getTX_vout_value($emercoin, $vin['txid'], $vin['vout']);
+		}
 	}
+}
 
 function TrimTrailingZeroes($nbr) {
     return strpos($nbr,'.')!==false ? rtrim(rtrim($nbr,'0'),'.') : $nbr;
@@ -54,7 +61,16 @@ function TrimTrailingZeroes($nbr) {
 			echo lang('CONFIRMED_TRANSACTIONS').': '.$block_numtx.'<br>';
 			echo lang('TRANSACTION_VOLUME').': '.TrimTrailingZeroes(number_format($block_valueout,6)).' EMC</p>';
 			echo '<p>'.lang('COINS_AVAILABLE').': '.TrimTrailingZeroes(number_format($block_total_coins,6)).' EMC<br>';
-			echo lang('POW_DIFFICULTY').': '.TrimTrailingZeroes(number_format($pow_difficulty,8)).'<br>';
-			echo lang('POS_DIFFICULTY').': '.TrimTrailingZeroes(number_format($pos_difficulty,8)).'</p>';
+			echo $difficultyFlag." ".lang('DIFFICULTY_DIFFICULTY').': '.TrimTrailingZeroes(number_format($difficulty,8)).'<br>';
 			echo '<p><a class="btn btn-primary btn-lg" href="/chain" role="button">'.lang('EXPLORE_EXPLORE').'</a></p>';
+			
+function getTX_vout_value($emercoin, $txHash, $n) {
+	$tx=$emercoin->getrawtransaction($txHash,1);
+	$tx_vout=$tx['vout'];
+	foreach ($tx_vout as $vout) {
+		if ($vout['n'] == $n) {
+			return $vout['value'];
+		}
+	}
+}
 ?>

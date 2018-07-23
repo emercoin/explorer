@@ -332,13 +332,17 @@ if ($type=="N/A"||$type=="n/a") {
 	<nav>
 		<ul class="pager">
 		<?php
-			if ($limit<=$elements && $elements!=0) {
-				echo '<li class="previous"><a href="javascript:sendPrevValues(\''.$results.'\','.$show_na.','.$show_valid.','.$index.');"><span aria-hidden="true"><i class="fa fa-arrow-circle-left"></i></span> '.lang('OLDER_OLDER').'</a></li>';
-			}
-			$index_new=($index-$results);
-			if ($index_new>=0  && $elements!=0) {
-				echo '<li class="next"><a href="javascript:sendNextValues(\''.$results.'\','.$show_na.','.$show_valid.','.$index.');">'.lang('NEWER_NEWER').' <span aria-hidden="true"><i class="fa fa-arrow-circle-right"></i></span></a></li>';
-			}
+      if (isset($limit)) {
+        if ($limit<=$elements && $elements!=0) {
+  				echo '<li class="previous"><a href="javascript:sendPrevValues(\''.$results.'\','.$show_na.','.$show_valid.','.$index.');"><span aria-hidden="true"><i class="fa fa-arrow-circle-left"></i></span> '.lang('OLDER_OLDER').'</a></li>';
+  			}
+      }
+      if ($results!="all") {
+        $index_new=bcsub($index,$results,0);
+  			if ($index_new>=0  && $elements!=0) {
+  				echo '<li class="next"><a href="javascript:sendNextValues(\''.$results.'\','.$show_na.','.$show_valid.','.$index.');">'.lang('NEWER_NEWER').' <span aria-hidden="true"><i class="fa fa-arrow-circle-right"></i></span></a></li>';
+  			}
+      }
 		?>
 		</ul>
 	</nav>
