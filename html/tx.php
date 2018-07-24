@@ -80,8 +80,11 @@ if ($hash!="") {
 			<div class="panel-body">
 
 				<table class="table">
-					<tr><td>'.lang("CONFIRMED_BLOCK").'</td><td width="75%"><a href="/block/'.$blockhash.'" class="btn btn-primary btn-xs" role="button">'.$height.'</a> <span class="label label-'.$labelcolor.'">'.$confirmations.'</span></td></tr>
-					<tr><td>'.lang("TIME_TIME").'</td><td>'.$time.'</td><td</tr>
+					<tr><td>'.lang("CONFIRMED_BLOCK").'</td><td width="75%"><a href="/block/'.$blockhash.'" class="btn btn-primary btn-xs" role="button">'.$height.'</a>';
+					if ($confirmations < 10) {
+						echo ' <span class="label label-'.$labelcolor.'">'.$confirmations.'</span></td></tr>';
+					}
+					echo '<tr><td>'.lang("TIME_TIME").'</td><td>'.$time.'</td><td</tr>
 					<tr><td>'.lang("INPUTS_INPUTS").'</td><td><span class="label label-danger">'.TrimTrailingZeroes(number_format($numvin,0)).' / '.TrimTrailingZeroes(number_format($valuein,8)).' EMC</span></td></tr>
 					<tr><td>'.lang("OUTPUTS_OUTPUTS").'</td><td><span class="label label-success">'.TrimTrailingZeroes(number_format($numvout,0)).' / '.TrimTrailingZeroes(number_format($valueout,8)).' EMC</span></td></tr>';
 					if ($fee<0) {

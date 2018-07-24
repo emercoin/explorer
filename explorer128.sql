@@ -169,6 +169,7 @@ CREATE TABLE `vout` (
 
 Create INDEX address on address (address);
 Create INDEX account on address (account);
+Create INDEX balance on address (balance);
 Create INDEX hash on blocks(hash);
 Create INDEX height on blocks(height);
 Create INDEX time on blocks(time);
