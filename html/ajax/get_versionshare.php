@@ -33,7 +33,7 @@ if (!empty($_COOKIE["lang"])) {
 	}
 } else {
 	setcookie("network","Mainnet",time()+(3600*24*14), "/");
-	require_once __DIR__ . '/../tools/include.php';
+	require_once __DIR__ . '/../../tools/include.php';
 }
 
 	echo '<div class="panel-heading"><b>Emercoin Versions</b> - Get the newest version <a target=_blank href="http://emercoin.com/#download">here</a></div>

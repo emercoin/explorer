@@ -8,7 +8,7 @@ if (!empty($_COOKIE["network"])) {
 	}
 } else {
 	setcookie("network","Mainnet",time()+(3600*24*14), "/");
-	require_once __DIR__ . '/../tools/include.php';
+	require_once __DIR__ . '/../../tools/include.php';
 }
 
 if (!empty($_COOKIE["lang"])) {
@@ -65,7 +65,7 @@ function TrimTrailingZeroes($nbr) {
 			echo '<p>'.lang('COINS_AVAILABLE').': '.TrimTrailingZeroes(number_format($block_total_coins,6)).' EMC<br>';
 			echo $difficultyFlag." ".lang('DIFFICULTY_DIFFICULTY').': '.TrimTrailingZeroes(number_format($difficulty,8)).'<br>';
 			echo '<p><a class="btn btn-primary btn-lg" href="/chain" role="button">'.lang('EXPLORE_EXPLORE').'</a></p>';
-			
+
 function getTX_vout_value($emercoin, $txHash, $n) {
 	$tx=$emercoin->getrawtransaction($txHash,1);
 	$tx_vout=$tx['vout'];

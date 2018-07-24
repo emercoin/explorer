@@ -167,8 +167,25 @@ CREATE TABLE `vout` (
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1 ROW_FORMAT=COMPRESSED KEY_BLOCK_SIZE=8;
 
-
-
+Create INDEX address on address (address);
+Create INDEX account on address (account);
+Create INDEX hash on blocks(hash);
+Create INDEX height on blocks(height);
+Create INDEX time on blocks(time);
+Create INDEX flags on blocks(flags);
+Create INDEX name on nvs (name);
+Create INDEX txid on transactions(txid);
+Create INDEX blockid on transactions(blockid);
+Create INDEX time on transactions(time);
+Create INDEX fee on transactions(fee);
+Create INDEX address on  vin(address);
+Create INDEX output_txid on  vin(output_txid);
+Create INDEX coinbase on  vin(coinbase);
+Create INDEX parenttxid on  vin(parenttxid);
+Create INDEX blockid on  vin(blockid);
+Create INDEX parenttxid on  vout(parenttxid);
+Create INDEX blockid on  vout(blockid);
+Create INDEX address on  vout(address);
 
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 /*!40101 SET SQL_MODE=@OLD_SQL_MODE */;
