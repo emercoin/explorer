@@ -1,4 +1,4 @@
-	<?php
+<?php
 if (!empty($_COOKIE["lang"])) {
 	$lang=$_COOKIE["lang"];
 	require("../lang/".$lang.".php");
@@ -43,42 +43,78 @@ if (!empty($_COOKIE["lang"])) {
 	</thead>
 	<tbody>';
 	$barcount=0;
-	$blockinfo=$emercoin->getinfo();
-	$blockheight=bcsub($blockinfo['blocks'],999,0);
-	$showBlocksQuery = "SELECT COUNT(*) as count, version FROM blocks
-						WHERE height >= '".$blockheight."'
-						GROUP BY version
-						ORDER BY height DESC";
-	$result = $dbconn->query($showBlocksQuery);
-	while($row = $result->fetch_assoc())
-	{
-		$count=bcmul(bcdiv($row['count'],1000,4),100,2);
-		$version=$row['version'];
+	$emc_info=$emercoin->getinfo();
+	$block_height=$emc_info['blocks'];
+	$lastBlocks = 1000;
+	$count062 = 0;
+	$count062mm = 0;
+	$count063 = 0;
+	$count063mm = 0;
+	$count064 = 0;
+	$count064mm = 0;
+	$count065 = 0;
+	$count065mm = 0;
+	for ($conf = 0;  $conf < $lastBlocks; $conf++) {
+		$block_hash=$emercoin->getblockhash($block_height-$conf);
+		$block=$emercoin->getblock($block_hash);
+		$version=$block['version'];
 		if ($version == 43646981) {
-			$version="0.6.2";
-			$barcount+=$count;
+			$count062++;
 		}
 		if ($version == 43647237) {
-			$version="0.6.2 (Merged Mining)";
-			$barcount+=$count;
+			$count062mm++;
 		}
 		if ($version == 43646982) {
-			$version="0.6.3";
-			$barcount+=$count;
+			$count063++;
 		}
 		if ($version == 43647238) {
-			$version="0.6.3 (Merged Mining)";
-			$barcount+=$count;
+			$count063mm++;
 		}
 		if ($version == 43646983) {
-			$version="0.6.4";
-			$barcount+=$count;
+			$count064++;
 		}
 		if ($version == 43647239) {
-			$version="0.6.4 (Merged Mining)";
-			$barcount+=$count;
+			$count064mm++;
 		}
-		echo '<tr><td>'.$version.'</td><td>'.$count.' %</td></tr>';
+		if ($version == 43646984) {
+			$count065++;
+		}
+		if ($version == 43647240) {
+			$count065mm++;
+		}
 	}
-		?>
-	</tbody></table>
+
+	if ($count062 != 0) {
+		$count062 = bcmul(bcdiv($count062,$lastBlocks,4),100,2);
+		echo '<tr><td>0.6.2</td><td>'.$count062.' %</td></tr>';
+	}
+	if ($count062mm != 0) {
+		$count062mm = bcmul(bcdiv($count062mm,$lastBlocks,4),100,2);
+		echo '<tr><td>0.6.2 (Merged Mining)</td><td>'.$count062mm.' %</td></tr>';
+	}
+	if ($count063 != 0) {
+		$count063 = bcmul(bcdiv($count063,$lastBlocks,4),100,2);
+		echo '<tr><td>0.6.3</td><td>'.$count063.' %</td></tr>';
+	}
+	if ($count063mm != 0) {
+		$count063mm = bcmul(bcdiv($count063mm,$lastBlocks,4),100,2);
+		echo '<tr><td>0.6.3 (Merged Mining)</td><td>'.$count063mm.' %</td></tr>';
+	}
+	if ($count064 != 0) {
+		$count064 = bcmul(bcdiv($count064,$lastBlocks,4),100,2);
+		echo '<tr><td>0.6.4</td><td>'.$count064.' %</td></tr>';
+	}
+	if ($count064mm != 0) {
+		$count064mm = bcmul(bcdiv($count064mm,$lastBlocks,4),100,2);
+		echo '<tr><td>0.6.4 (Merged Mining)</td><td>'.$count064mm.' %</td></tr>';
+	}
+	if ($count065 != 0) {
+		$count065 = bcmul(bcdiv($count065,$lastBlocks,4),100,2);
+		echo '<tr><td>0.6.5</td><td>'.$count065.' %</td></tr>';
+	}
+	if ($count065mm != 0) {
+		$count065mm = bcmul(bcdiv($count065mm,$lastBlocks,4),100,2);
+		echo '<tr><td>0.6.5 (Merged Mining)</td><td>'.$count065mm.' %</td></tr>';
+	}
+?>
+</tbody></table>

@@ -1,7 +1,4 @@
 	<?php
-		ini_set('display_startup_errors', 1);
-ini_set('display_errors', 1);
-error_reporting(-1);
 if (!empty($_COOKIE["lang"])) {
 	$lang=$_COOKIE["lang"];
 	require("../lang/".$lang.".php");
@@ -53,7 +50,6 @@ $block_height=$emc_info['blocks'];
 	</thead>
 	<tbody>';
 	for ($conf = 0;  $conf < 9; $conf++) {
-		echo $conf;
 		$block_hash=$emercoin->getblockhash($block_height-$conf);
 		$block=$emercoin->getblock($block_hash);
 		$flags=$block['flags'];
@@ -75,7 +71,7 @@ $block_height=$emc_info['blocks'];
 						$vout += getTX_vout_value($emercoin, $vin['txid'], $vin['vout']);
 					}
 				}
-			}	
+			}
 			if ($block_numtx > $txSkipValue) {
 				$tx_id_short = substr($tx, 0, 4)."...".substr($tx, -4);
 				if ($confirmations<3) {$labelcolor="danger";};
@@ -84,10 +80,10 @@ $block_height=$emc_info['blocks'];
 				echo '<tr><td><a href="/tx/'.$tx.'" class="btn btn-primary btn-xs" role="button">'.$tx_id_short.'</a></td><td>'.$vout.'</td><td><span class="label label-'.$labelcolor.'">'.$confirmations.'</span></td></tr>';
 			}
 		}
-	}	
+	}
 	echo "</tbody></table>";
 
-	
+
 function getTX_vout_value($emercoin, $txHash, $n) {
 	$tx=$emercoin->getrawtransaction($txHash,1);
 	$tx_vout=$tx['vout'];
