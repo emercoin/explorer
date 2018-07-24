@@ -28,7 +28,7 @@ $( document ).ready(function() {
 function getRawMempool()
 {
 	$.ajax({
-	url: "/ajax/get_rawmempool.php"
+	url: "/ajax/get_rawmempool.php?network=<?php echo $_COOKIE['network']; ?>"
 	})
 	.done(function( html ) {
 		$('#unconfirmed_transactions').html(html);
@@ -39,7 +39,7 @@ function getRawMempool()
 function getRecentTransactions()
 {
 	$.ajax({
-	url: "/ajax/get_recenttx.php"
+	url: "/ajax/get_recenttx.php?network=<?php echo $_COOKIE['network']; ?>"
 	})
 	.done(function( html ) {
 		$('#recent_transactions').html(html);
@@ -50,7 +50,7 @@ function getRecentTransactions()
 function getHomeInfo()
 {
 	$.ajax({
-	url: "/ajax/get_homeinfo.php"
+	url: "/ajax/get_homeinfo.php?network=<?php echo $_COOKIE['network']; ?>"
 	})
 	.done(function( html ) {
 		$('#home_info').html(html);
@@ -61,7 +61,7 @@ function getHomeInfo()
 function getVersionShare()
 {
 	$.ajax({
-	url: "/ajax/get_versionshare.php"
+	url: "/ajax/get_versionshare.php?network=<?php echo $_COOKIE['network']; ?>"
 	})
 	.done(function( html ) {
 		$('#version_share').html(html);
