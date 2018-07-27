@@ -58,9 +58,9 @@ if (isset($_SERVER['REQUEST_URI'])) {
 	if ($URI[1]=="nvs") {
 		$include_file="nvs";
 	}
-	if ($URI[1]=="emerboard") {
-		$include_file="emerboard";
-	}
+	//if ($URI[1]=="emerboard") {
+	//	$include_file="emerboard";
+	//}
 	if ($URI[1]=="dpo") {
 		$include_file="dpo";
 	}
@@ -165,7 +165,7 @@ if ($include_file=="api") {
 				<li <?php if ($include_file=='nvs') { echo 'class="active"'; } ?>><a href="/nvs"><?php echo lang('NVS_NVS'); ?></a></li>
 				<li <?php if ($include_file=='dpo') { echo 'class="active"'; } ?>><a href="/dpo"><?php echo 'DPO'; ?></a></li>
 				<li <?php if ($include_file=='poscal') { echo 'class="active"'; } ?>><a href="/poscal"><?php echo 'Mining-Calculator'; ?></a></li>
-				<li <?php if ($include_file=='emerboard') { echo 'class="active"'; } ?>><a href="/emerboard"><?php echo lang('EMERBOARD_EMERBOARD'); ?></a></li>
+				<!--<li <?php if ($include_file=='emerboard') { echo 'class="active"'; } ?>><a href="/emerboard"><?php echo lang('EMERBOARD_EMERBOARD'); ?></a></li>-->
 			</ul>
 		<form class="navbar-form navbar-left" role="search" action="javascript:search();">
 			<div class="form-group ">
@@ -287,7 +287,7 @@ if ($include_file=="api") {
 		</div>
 		<p class="text-muted">
 		<sub><?php echo lang('INFO_FEEDBACK'); ?>: <a href="https://github.com/emercoin-explorer/emercoin-explorer" target="_blank">GitHub</a> | <a href="mailto:explorer@emercoin.com">E-Mail</a></sub><br>
-		<sub>v.1.9.1</sub></p>
+		<sub>v.1.9.1.1</sub></p>
       </div>
 </footer>
 </body>

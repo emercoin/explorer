@@ -50,10 +50,10 @@ if (!empty($_COOKIE["lang"])) {
 	$count062mm = 0;
 	$count063 = 0;
 	$count063mm = 0;
-	$count064 = 0;
-	$count064mm = 0;
-	$count065 = 0;
-	$count065mm = 0;
+	$count070 = 0;
+	$count070mm = 0;
+	$count071 = 0;
+	$count071mm = 0;
 	for ($conf = 0;  $conf < $lastBlocks; $conf++) {
 		$block_hash=$emercoin->getblockhash($block_height-$conf);
 		$block=$emercoin->getblock($block_hash);
@@ -71,16 +71,16 @@ if (!empty($_COOKIE["lang"])) {
 			$count063mm++;
 		}
 		if ($version == 43646983) {
-			$count064++;
+			$count070++;
 		}
 		if ($version == 43647239) {
-			$count064mm++;
+			$count070mm++;
 		}
 		if ($version == 43646984) {
-			$count065++;
+			$count071++;
 		}
 		if ($version == 43647240) {
-			$count065mm++;
+			$count071mm++;
 		}
 	}
 
@@ -100,21 +100,21 @@ if (!empty($_COOKIE["lang"])) {
 		$count063mm = bcmul(bcdiv($count063mm,$lastBlocks,4),100,2);
 		echo '<tr><td>0.6.3 (Merged Mining)</td><td>'.$count063mm.' %</td></tr>';
 	}
-	if ($count064 != 0) {
-		$count064 = bcmul(bcdiv($count064,$lastBlocks,4),100,2);
-		echo '<tr><td>0.6.4</td><td>'.$count064.' %</td></tr>';
+	if ($count070 != 0) {
+		$count070 = bcmul(bcdiv($count070,$lastBlocks,4),100,2);
+		echo '<tr><td>0.7.0</td><td>'.$count070.' %</td></tr>';
 	}
-	if ($count064mm != 0) {
-		$count064mm = bcmul(bcdiv($count064mm,$lastBlocks,4),100,2);
-		echo '<tr><td>0.6.4 (Merged Mining)</td><td>'.$count064mm.' %</td></tr>';
+	if ($count070mm != 0) {
+		$count070mm = bcmul(bcdiv($count070mm,$lastBlocks,4),100,2);
+		echo '<tr><td>0.7.0 (Merged Mining)</td><td>'.$count070mm.' %</td></tr>';
 	}
-	if ($count065 != 0) {
-		$count065 = bcmul(bcdiv($count065,$lastBlocks,4),100,2);
-		echo '<tr><td>0.6.5</td><td>'.$count065.' %</td></tr>';
+	if ($count071 != 0) {
+		$count071 = bcmul(bcdiv($count071,$lastBlocks,4),100,2);
+		echo '<tr><td>0.7.1</td><td>'.$count071.' %</td></tr>';
 	}
-	if ($count065mm != 0) {
-		$count065mm = bcmul(bcdiv($count065mm,$lastBlocks,4),100,2);
-		echo '<tr><td>0.6.5 (Merged Mining)</td><td>'.$count065mm.' %</td></tr>';
+	if ($count071mm != 0) {
+		$count071mm = bcmul(bcdiv($count071mm,$lastBlocks,4),100,2);
+		echo '<tr><td>0.7.1 (Merged Mining)</td><td>'.$count071mm.' %</td></tr>';
 	}
 ?>
 </tbody></table>

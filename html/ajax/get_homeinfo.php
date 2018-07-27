@@ -18,27 +18,25 @@ if (!empty($_COOKIE["lang"])) {
 	setcookie("lang","en",time()+(3600*24*14), "/");
 	require("../lang/en.php");
 }
-
-
-		$block_height="";
-		$block_hash="";
-		$block_total_coins="";
-		$block_numtx="0";
-		$block_valueout="0";
-		$pow_difficulty="";
-		$pos_difficulty="";
-		$difficultyFlag = "PoW";
-		$txSkipValue = 1;
+$block_height="";
+$block_hash="";
+$block_total_coins="";
+$block_numtx="0";
+$block_valueout="0";
+$pow_difficulty="";
+$pos_difficulty="";
+$txSkipValue = 1;
 
 $block_hash=$emercoin->getbestblockhash();
 $block=$emercoin->getblock($block_hash);
-$difficulty=$block['difficulty'];
+
 $flags=$block['flags'];
 if ($flags == "proof-of-stake") {
-	$difficultyFlag = "PoS";
 	$txSkipValue = 2;
+	$pos_difficulty = $block['difficulty'];
 }
 $emc_info=$emercoin->getinfo();
+$pow_difficulty = $emc_info['difficulty'];
 $block_total_coins=$emc_info['moneysupply'];
 $block_height=$emc_info['blocks'];
 $txs=$block['tx'];
@@ -55,6 +53,15 @@ foreach ($txs as $tx) {
 }
 $block_numtx = $block_numtx-$txSkipValue;
 
+while ($flags != "proof-of-stake") {
+	$oldBlock = $emercoin->getblock($block['previousblockhash']);
+	$block = $oldBlock;
+	$flags=$block['flags'];
+	if ($flags == "proof-of-stake") {
+		$pos_difficulty = $block['difficulty'];
+	}
+}
+
 function TrimTrailingZeroes($nbr) {
     return strpos($nbr,'.')!==false ? rtrim(rtrim($nbr,'0'),'.') : $nbr;
 }
@@ -63,7 +70,8 @@ function TrimTrailingZeroes($nbr) {
 			echo lang('CONFIRMED_TRANSACTIONS').': '.$block_numtx.'<br>';
 			echo lang('TRANSACTION_VOLUME').': '.TrimTrailingZeroes(number_format($block_valueout,6)).' EMC</p>';
 			echo '<p>'.lang('COINS_AVAILABLE').': '.TrimTrailingZeroes(number_format($block_total_coins,6)).' EMC<br>';
-			echo $difficultyFlag." ".lang('DIFFICULTY_DIFFICULTY').': '.TrimTrailingZeroes(number_format($difficulty,8)).'<br>';
+			echo lang('POW_DIFFICULTY').': '.TrimTrailingZeroes(number_format($pow_difficulty,8)).'<br>';
+			echo lang('POS_DIFFICULTY').': '.TrimTrailingZeroes(number_format($pos_difficulty,8)).'<br>';
 			echo '<p><a class="btn btn-primary btn-lg" href="/chain" role="button">'.lang('EXPLORE_EXPLORE').'</a></p>';
 
 function getTX_vout_value($emercoin, $txHash, $n) {
