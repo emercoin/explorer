@@ -473,8 +473,16 @@ function linearRegression ($regrassionArray, $values, $count) {
 		$x_avg=bcadd($x_avg,$regrassionArray[$i]['x'],8);
 		$y_avg=bcadd($y_avg,$regrassionArray[$i]['y'],8);
 	}
-	$x_avg=bcdiv($x_avg,$count,8);
-	$y_avg=bcdiv($y_avg,$count,8);
+	if ($count != 0) {
+		$x_avg=bcdiv($x_avg,$count,8);
+	} else {
+		$x_avg=0;
+	}
+	if ($count != 0) {
+		$y_avg=bcdiv($y_avg,$count,8);
+	} else {
+		$y_avg=0;
+	}
 	$x_avg_diff_sum=0;
 	$y_avg_diff_sum=0;
 	$x_avg_diff_X_y_avg_diff_sum=0;
@@ -492,9 +500,21 @@ function linearRegression ($regrassionArray, $values, $count) {
 		$regrassionArray[$i]['y_avg_X2']=bcmul($regrassionArray[$i]['y_avg_diff'],$regrassionArray[$i]['y_avg_diff'],8);
 		$y_avg_X2_sum=bcadd($y_avg_X2_sum,$regrassionArray[$i]['y_avg_X2'],8);
 	}
-	$x_avg_diff_X_y_avg_diff_sum_avg=bcdiv($x_avg_diff_X_y_avg_diff_sum,$count,8);
-	$x_avg_X2_sum_avg=bcdiv($x_avg_X2_sum,$count,8);
-	$y_avg_X2_sum_avg=bcdiv($y_avg_X2_sum,$count,8);
+	if ($count != 0) {
+		$x_avg_diff_X_y_avg_diff_sum_avg=bcdiv($x_avg_diff_X_y_avg_diff_sum,$count,8);
+	} else {
+		$x_avg_diff_X_y_avg_diff_sum_avg=0;
+	}
+	if ($count != 0) {
+		$x_avg_X2_sum_avg=bcdiv($x_avg_X2_sum,$count,8);
+	} else {
+		$x_avg_X2_sum_avg=0;
+	}
+	if ($count != 0) {
+		$y_avg_X2_sum_avg=bcdiv($y_avg_X2_sum,$count,8);
+	} else {
+		$y_avg_X2_sum_avg=0;
+	}
 
 	$Sx=sqrt($x_avg_X2_sum_avg);
 	$Sy=sqrt($y_avg_X2_sum_avg);
