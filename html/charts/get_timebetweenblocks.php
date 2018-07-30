@@ -1,6 +1,10 @@
 <?php
 error_reporting(E_ALL);
-require_once __DIR__ . '/../../tools/include.php';
+if (explode('.', $_SERVER['HTTP_HOST'])[0] == "testnet") {
+	require_once __DIR__ . '/../../tools/tinclude.php';
+} else {
+	require_once __DIR__ . '/../../tools/include.php';
+}
 $query="SELECT (
 YEAR( FROM_UNIXTIME( `time` ) ) *3650 + MONTH( FROM_UNIXTIME( `time` ) ) *120 + DAY( FROM_UNIXTIME( `time` ) )
 ) AS `day` , FROM_UNIXTIME( time ) AS time, (1400/COUNT( hash )) AS blocks

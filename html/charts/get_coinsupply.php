@@ -1,6 +1,10 @@
 <?php
 error_reporting(E_ALL);
-require_once __DIR__ . '/../../tools/include.php';
+if (explode('.', $_SERVER['HTTP_HOST'])[0] == "testnet") {
+	require_once __DIR__ . '/../../tools/tinclude.php';
+} else {
+	require_once __DIR__ . '/../../tools/include.php';
+}
 $query="SELECT time, AVG(total_coins) as total_coins
 FROM blocks
 WHERE id > 1

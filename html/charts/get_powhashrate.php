@@ -1,6 +1,10 @@
 <?php
 error_reporting(E_ALL);
-require_once __DIR__ . '/../../tools/include.php';
+if (explode('.', $_SERVER['HTTP_HOST'])[0] == "testnet") {
+	require_once __DIR__ . '/../../tools/tinclude.php';
+} else {
+	require_once __DIR__ . '/../../tools/include.php';
+}
 $query="SELECT time, COUNT( id ) AS blocks, AVG(difficulty) AS difficulty 
 FROM blocks
 WHERE id > 1 AND flags LIKE '%proof-of-work%'
