@@ -395,6 +395,8 @@ function getblockinfo($dbconn, $emercoin, $hash) {
 		}
 
 		$current_status="1";
+		$block=$emercoin->getblock($hash);
+		$time=$block['time'];
 		$query="UPDATE blocks
 		SET time = $time,
 		numtx = $counttx,
