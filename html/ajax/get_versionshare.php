@@ -24,17 +24,11 @@ if (!empty($_COOKIE["lang"])) {
 		}
 	}
 
-	if (!empty($_COOKIE["network"])) {
-	$network=$_COOKIE["network"];
-	if ($network=='Mainnet') {
-		require_once __DIR__ . '/../../tools/include.php';
-	} else if ($network=='Testnet') {
+	if (explode('.', $_SERVER['HTTP_HOST'])[0] == "testnet") {
 		require_once __DIR__ . '/../../tools/tinclude.php';
+	} else {
+		require_once __DIR__ . '/../../tools/include.php';
 	}
-} else {
-	setcookie("network","Mainnet",time()+(3600*24*14), "/");
-	require_once __DIR__ . '/../../tools/include.php';
-}
 
 	echo '<div class="panel-heading"><b>Emercoin Versions</b> - Get the newest version <a target=_blank href="http://emercoin.com/#download">here</a></div>
 	<table class="table">

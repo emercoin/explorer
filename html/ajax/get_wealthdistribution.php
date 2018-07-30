@@ -12,15 +12,9 @@
 
 	<h3><?php echo lang('WEALTH_DISTRIBUTION'); ?></h3>
 	<?php
-	if (!empty($_COOKIE["network"])) {
-	$network=$_COOKIE["network"];
-	if ($network=='Mainnet') {
-		require_once __DIR__ . '/../../tools/include.php';
-	} else if ($network=='Testnet') {
-		require_once __DIR__ . '/../../tools/tinclude.php';
-	}
+if (explode('.', $_SERVER['HTTP_HOST'])[0] == "testnet") {
+	require_once __DIR__ . '/../../tools/tinclude.php';
 } else {
-	setcookie("network","Mainnet",time()+(3600*24*14), "/");
 	require_once __DIR__ . '/../../tools/include.php';
 }
 	function TrimTrailingZeroes($nbr) {

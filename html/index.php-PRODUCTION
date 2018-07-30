@@ -3,17 +3,11 @@ session_start();
 ini_set('display_errors', 1);
 ini_set('display_startup_errors', 1);
 error_reporting(E_ALL);
-if (!empty($_COOKIE["network"])) {
-	if ($_COOKIE["network"]=='Mainnet') {
-		require_once __DIR__ . '/../tools/include.php';
-	} else if ($_COOKIE["network"]=='Testnet') {
-		require_once __DIR__ . '/../tools/tinclude.php';
-	}
+if (explode('.', $_SERVER['HTTP_HOST'])[0] == "testnet") {
+	require_once __DIR__ . '/../tools/tinclude.php';
 } else {
-	setcookie("network","Mainnet",time()+(3600*24*14), "/");
 	require_once __DIR__ . '/../tools/include.php';
 }
-
 
 if (!empty($_COOKIE["lang"])) {
 	$lang=$_COOKIE["lang"];
@@ -133,12 +127,8 @@ if ($include_file=="api") {
 <body>
 <!-- Fixed navbar -->
 <?php
-	if (!empty($_COOKIE["network"])) {
-		if ($_COOKIE["network"]=="Mainnet") {
-			echo '<nav class="navbar navbar-default">';
-		} else if ($_COOKIE["network"]=="Testnet") {
-			echo '<nav class="navbar navbar-inverse">';
-		}
+	if (explode('.', $_SERVER['HTTP_HOST'])[0] == "testnet") {
+		echo '<nav class="navbar navbar-inverse">';
 	} else {
 		echo '<nav class="navbar navbar-default">';
 	}
@@ -177,12 +167,8 @@ if ($include_file=="api") {
 			<li class="dropdown">
 				<a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-haspopup="true" aria-expanded="false">
 				<?php
-					if (!empty($_COOKIE["network"])) {
-						if ($_COOKIE["network"]=="Mainnet") {
-							echo '<span class="label label-primary">Mainnet</span>';
-						} else if ($_COOKIE["network"]=="Testnet") {
-							echo '<span class="label label-danger">Testnet</span>';
-						}
+					if (explode('.', $_SERVER['HTTP_HOST'])[0] == "testnet") {
+						echo '<span class="label label-danger">Testnet</span>';
 					} else {
 						echo '<span class="label label-primary">Mainnet</span>';
 					}
@@ -248,14 +234,12 @@ if ($include_file=="api") {
 	};
 
 	function networkSwitch(network) {
-		var request = $.ajax({
-			type: "POST",
-			url: "/ajax/change_network.php",
-			data: { network: network }
-		});
-		request.done(function( response ) {
-			location.reload();
-		});
+		if (network == "Mainnet") {
+			window.location.href = 'https://explorer.emercoin.com';
+		}
+		if (network == "Testnet") {
+			window.location.href = 'https://testnet.emercoin.com';
+		}
 	};
 
 	function search() {
@@ -287,7 +271,7 @@ if ($include_file=="api") {
 		</div>
 		<p class="text-muted">
 		<sub><?php echo lang('INFO_FEEDBACK'); ?>: <a href="https://github.com/emercoin-explorer/emercoin-explorer" target="_blank">GitHub</a> | <a href="mailto:explorer@emercoin.com">E-Mail</a></sub><br>
-		<sub>v.1.9.2</sub></p>
+		<sub>v.1.9.3</sub></p>
       </div>
 </footer>
 </body>
