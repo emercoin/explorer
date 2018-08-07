@@ -22,25 +22,25 @@ echo '</div>';
 <script>
 $(document).ready(function() {
 	$.ajax({
-	url: "/ajax/block/get_block_id.php?hash=<?php echo $hash; ?>&network=<?php echo $_COOKIE['network']; ?>"
+	url: "/ajax/block/get_block_id.php?hash=<?php echo $hash; ?>"
 	})
 	.done(function( html ) {
 		block_id = html;
 		if (block_id >= 0) {
 			$.ajax({
-			url: "/ajax/block/get_block.php?block_id="+block_id+"&network=<?php echo $_COOKIE['network']; ?>"
+			url: "/ajax/block/get_block.php?block_id="+block_id+""
 			})
 			.done(function( html ) {
 				$('#blockDiv').html(html);
 			});
 			$.ajax({
-			url: "/ajax/block/get_tx.php?block_id="+block_id+"&network=<?php echo $_COOKIE['network']; ?>"
+			url: "/ajax/block/get_tx.php?block_id="+block_id+""
 			})
 			.done(function( html ) {
 				$('#txDiv').html(html);
 			});
 			$.ajax({
-			url: "/ajax/block/get_nvs.php?block_id="+block_id+"&network=<?php echo $_COOKIE['network']; ?>"
+			url: "/ajax/block/get_nvs.php?block_id="+block_id+""
 			})
 			.done(function( html ) {
 				$('#nvsDiv').html(html);
