@@ -1,8 +1,5 @@
 <?php
 session_start();
-ini_set('display_errors', 1);
-ini_set('display_startup_errors', 1);
-error_reporting(E_ALL);
 if (explode('.', $_SERVER['HTTP_HOST'])[0] == "testnet") {
 	require_once __DIR__ . '/../tools/tinclude.php';
 } else {
@@ -271,7 +268,7 @@ if ($include_file=="api") {
 		</div>
 		<p class="text-muted">
 		<sub><?php echo lang('INFO_FEEDBACK'); ?>: <a href="https://github.com/emercoin-explorer/emercoin-explorer" target="_blank">GitHub</a> | <a href="mailto:explorer@emercoin.com">E-Mail</a></sub><br>
-		<sub>v.1.9.3</sub></p>
+		<sub>v.1.9.4</sub></p>
       </div>
 </footer>
 </body>
