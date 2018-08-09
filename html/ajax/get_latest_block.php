@@ -17,9 +17,8 @@ $block_hash="";
 $block_total_coins="";
 $block_numtx="0";
 $block_valueout="0";
-$pow_difficulty="";
-$pos_difficulty="";
 $txSkipValue = 1;
+$confirmedBy = "";
 
 $block_hash=$emercoin->getbestblockhash();
 $block=$emercoin->getblock($block_hash);
@@ -27,16 +26,26 @@ $block=$emercoin->getblock($block_hash);
 $flags=$block['flags'];
 if ($flags == "proof-of-stake") {
 	$txSkipValue = 2;
-	$pos_difficulty = $block['difficulty'];
 }
+$time = $flags=$block['time'];
 $emc_info=$emercoin->getinfo();
-$pow_difficulty = $emc_info['difficulty'];
 $block_total_coins=$emc_info['moneysupply'];
 $block_height=$emc_info['blocks'];
 $txs=$block['tx'];
 foreach ($txs as $tx) {
 	$tx_full=$emercoin->getrawtransaction($tx,1);
 	$block_numtx++;
+	foreach ($tx_full['vout'] as $vout) {
+		if (isset($vout['scriptPubKey'])) {
+			$asm = $vout['scriptPubKey']['asm'];
+			if ($asm != "") {
+				if (strpos($asm, 'OP_DUP OP_HASH160') !== false) {
+				} else {
+					$confirmedBy = $vout['scriptPubKey']['addresses'][0];
+				}
+			}
+		}
+	}
 	foreach ($tx_full['vin'] as $vin) {
 		if (isset($vin['txid'])){
 			if ($block_numtx > $txSkipValue) {
@@ -47,26 +56,19 @@ foreach ($txs as $tx) {
 }
 $block_numtx = $block_numtx-$txSkipValue;
 
-while ($flags != "proof-of-stake") {
-	$oldBlock = $emercoin->getblock($block['previousblockhash']);
-	$block = $oldBlock;
-	$flags=$block['flags'];
-	if ($flags == "proof-of-stake") {
-		$pos_difficulty = $block['difficulty'];
-	}
-}
-
 function TrimTrailingZeroes($nbr) {
     return strpos($nbr,'.')!==false ? rtrim(rtrim($nbr,'0'),'.') : $nbr;
 }
-			echo '<h3><strong>'.lang('WELCOME_EXPLORER').'</strong></h3>';
-			echo '<p>'.lang('LATEST_BLOCK').': <a href=/block/'.$block_hash.'>'.$block_height.'</a><br>';
-			echo lang('CONFIRMED_TRANSACTIONS').': '.$block_numtx.'<br>';
-			echo lang('TRANSACTION_VOLUME').': '.TrimTrailingZeroes(number_format($block_valueout,6)).' EMC</p>';
-			echo '<p>'.lang('COINS_AVAILABLE').': '.TrimTrailingZeroes(number_format($block_total_coins,6)).' EMC<br>';
-			echo lang('POW_DIFFICULTY').': '.TrimTrailingZeroes(number_format($pow_difficulty,8)).'<br>';
-			echo lang('POS_DIFFICULTY').': '.TrimTrailingZeroes(number_format($pos_difficulty,8)).'<br>';
-			echo '<p><a class="btn btn-primary btn-lg" href="/chain" role="button">'.lang('EXPLORE_EXPLORE').'</a></p>';
+	echo '
+	<div class="panel-body">
+		<span class="lead">'.lang('LATEST_BLOCK').': <a href=/block/'.$block_hash.'>'.$block_height.'</a></span><br>
+		'.lang('CONFIRMED_TRANSACTIONS').': '.$block_numtx.'<br>
+		'.lang('TRANSACTION_VOLUME').': '.TrimTrailingZeroes(number_format($block_valueout,6)).' EMC</p>
+		<small><span class="text-muted">
+			confirmed by <a href="/address/'.$confirmedBy.'">'.$confirmedBy.'</a><br>
+			'.date("Y-m-d H:i:s", $time).'
+		</span></small>
+	</div>';
 
 function getTX_vout_value($emercoin, $txHash, $n) {
 	$tx=$emercoin->getrawtransaction($txHash,1);

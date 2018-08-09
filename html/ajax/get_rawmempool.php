@@ -192,7 +192,7 @@ if (!empty($_COOKIE["lang"])) {
 	}
 	echo "</tbody></table>";
 	if (!isset($txhash)) {
-		echo lang('THERE_TRANSACTIONS');
+		echo '<div class="panel-body">'.lang('THERE_TRANSACTIONS').'</div>';
 	}
 
 	?>

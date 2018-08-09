@@ -30,7 +30,7 @@ if (!empty($_COOKIE["lang"])) {
 		require_once __DIR__ . '/../../tools/include.php';
 	}
 
-echo '<div class="panel-heading"><b>Emercoin Versions</b> - Get the newest version <a target=_blank href="http://emercoin.com/#download">here</a></div>
+echo '<div class="panel-heading"><b>Emercoin Versions</b><br>Get new versions <a target=_blank href="http://emercoin.com/#download">here</a></div>
 	<table class="table">
 	<thead>
 	<tr><th>Version</th><th>Share</th></tr>
@@ -74,5 +74,5 @@ echo '<div class="panel-heading"><b>Emercoin Versions</b> - Get the newest versi
 		}
 		echo '<tr><td>'.$version.'</td><td>'.$count.' %</td></tr>';
 	}
-		?>
+?>
 </tbody></table>

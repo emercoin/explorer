@@ -54,7 +54,7 @@ function lang($phrase){
 		'LATEST_BLOCK' => 'Letzer Block',
 		'POS_DIFFICULTY' => 'PoS Schwierigkeit',
 		'POW_DIFFICULTY' => 'PoW Schwierigkeit',
-		'THERE_TRANSACTIONS' => 'Es gibt derzeit keine unbestätigten Transaktionen.',
+		'THERE_TRANSACTIONS' => 'Keine unbestätigten Transaktionen',
 		'TRANSACTION_VOLUME' => 'Transaktionsvolumen',
 		'TX_ID' => 'TX ID',
 		'UNCONFIRMED_TRANSACTIONS' => 'Unbestätigte Transaktionen',
