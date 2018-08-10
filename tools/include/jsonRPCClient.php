@@ -135,7 +135,7 @@ class jsonRPCClient {
 				$response.= trim($row)."\n";
 			}
 			$this->debug && $this->debug.='***** Server response *****'."\n".$response.'***** End of server response *****'."\n";
-			$response = json_decode($response,true);
+			$response = json_decode(mb_convert_encoding($response,'UTF-8','UTF-8'),true);
 		} else {
 			throw new Exception('Unable to connect to '.$this->url);
 		}

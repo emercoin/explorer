@@ -1,4 +1,4 @@
-# emercoin-blockchain-explorer
+# Emercoin Explorer
 
 This website will provide a blockachain explorer for the Emercoin project.
 It will also work with peercoin and forked versions of it.
