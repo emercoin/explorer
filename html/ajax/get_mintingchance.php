@@ -76,20 +76,19 @@ if (isset($_GET['address'])) {
 }
 
 function calculateProbStake ($days, $coins, $difficulty) {
-                $prob = 0;
-                if ($days > 30) {
-                    $maxTarget = bcpow(2, 224, 16);
-                    $target = bcdiv($maxTarget,$difficulty,16);
-                    $dayWeight = bcsub(min($days,90),30,16);
-                    $prob = bcdiv(bcmul(bcmul($target,$coins,16),$dayWeight,16),bcpow(2, 256,16),16);
-                }
-                return $prob;
-            };
+    $prob = 0;
+    if ($days > 30) {
+		$maxTarget = bcpow(2, 224, 16);
+		$target = bcdiv($maxTarget,$difficulty,16);
+		$dayWeight = bcsub(min($days,90),30,16);
+		$prob = bcdiv(bcmul(bcmul($target,$coins,16),$dayWeight,16),bcpow(2, 256,16),16);
+	}
+	return $prob;
+ };
 
 function calculateProbBlockToday ($days, $coins, $difficulty) {
 	$prob = calculateProbStake($days, $coins, $difficulty);
-    $res = bcsub(1,bcpow(bcsub(1,$prob,16), 600,16),16);
-	$res = bcmul($res,144,16);
+    $res = bcsub(1,pow(bcsub(1,$prob,16), 86400),16);
 	$res = bcmul($res,100,2);
 	return $res;
 };

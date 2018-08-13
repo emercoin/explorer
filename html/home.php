@@ -7,6 +7,9 @@
 			<div id="current_statistics" class="panel panel-default">
 
 			</div>
+			<div id="pos_dominance" class="panel panel-default">
+
+			</div>
 		</div>
 		<div class="col-md-5">
 			<div id="recent_blocks" class="panel panel-default">
@@ -39,6 +42,7 @@ $( document ).ready(function() {
 	getRecentTransactions();
 	getVersionShare();
 	getExplorerStatus();
+	getPosDominance();
 });
 
 function getRawMempool() {
@@ -91,6 +95,17 @@ function getCurrentStatistics()
 		$('#current_statistics').html(html);
 	});
 	setTimeout(getCurrentStatistics, 15000);
+}
+
+function getPosDominance()
+{
+	$.ajax({
+	url: "/ajax/get_pos_dominance.php"
+	})
+	.done(function( html ) {
+		$('#pos_dominance').html(html);
+	});
+	setTimeout(getPosDominance, 15000);
 }
 
 function getVersionShare()

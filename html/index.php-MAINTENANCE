@@ -110,7 +110,7 @@ if (!empty($_COOKIE["lang"])) {
 		<p class="text-muted">
 		<sub>Donations: <a href="emercoin:EWESk7yQCixPGfcRsBt5yRpiVq597ji697?amount=0&label=Donation - Emercoin Explorer">EWESk7yQCixPGfcRsBt5yRpiVq597ji697</a></sub><br>
 		<sub><?php echo lang('INFO_FEEDBACK'); ?>: <a href="https://github.com/emercoin-explorer/emercoin-explorer" target="_blank">GitHub</a> | <a href="mailto:explorer@emercoin.com">E-Mail</a></sub><br>
-		<sub>v.1.10.1</sub></p>
+		<sub>v.1.10.2</sub></p>
       </div>
 </footer>
 </body>
