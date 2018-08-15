@@ -72,6 +72,14 @@ echo '<div class="panel-heading"><b>Emercoin Versions</b><br>Get new versions <a
 			$version="0.7.0 (Merged Mining)";
 			$barcount+=$count;
 		}
+		if ($version == 43646984) {
+			$version="0.7.1";
+			$barcount+=$count;
+		}
+		if ($version == 43647240) {
+			$version="0.7.1 (Merged Mining)";
+			$barcount+=$count;
+		}
 		echo '<tr><td>'.$version.'</td><td>'.$count.' %</td></tr>';
 	}
 ?>
