@@ -285,6 +285,7 @@ if ($type=="N/A"||$type=="n/a") {
 		$type=$row['type'];
 		if ($type=="") {$type="<i>N/A</i>";}
 		$name=$row['name'];
+		$name = preg_replace("/(.{50})/", "$1<br>", $name);
 		$value=utf8_decode($row['value']);
 		$isbase64=$row['isbase64'];
 		if ($isbase64==1) {
