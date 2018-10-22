@@ -932,121 +932,246 @@ if ($type=="stats" && $subtype!="")
 		} else {
 			echo json_encode(array('error' => 'Could not decode hash'), JSON_PRETTY_PRINT);
 		}
-	} else if ($subtype=="known_addresses" && $pattern == "30days") {
-		$valid_access=1;
-		header('Content-Type: application/json');
-		$query="SELECT (total_addresses_used+total_addresses_unused) AS known_addresses , CONCAT(YEAR(FROM_UNIXTIME( time )),'-',MONTH(FROM_UNIXTIME( time )),'-',DAY(FROM_UNIXTIME( time ))) AS 'date'
-		FROM blocks
-		WHERE
-		FROM_UNIXTIME( time ) > SUBDATE(FROM_UNIXTIME( time ), INTERVAL 31 DAY)
-		GROUP BY CONCAT(YEAR(FROM_UNIXTIME( time )),'-',MONTH(FROM_UNIXTIME( time )),'-',DAY(FROM_UNIXTIME( time ))) 
-		ORDER BY height DESC LIMIT 30";
-		$result = mysqli_query($dbconn,$query);
-		$data_array=array();
-		while($row = $result->fetch_assoc())
-		{
-			$known_addresses = $row['known_addresses'];
-			$date = $row['date'];
-			if (isset($known_addresses)) {			
-				array_push($data_array,array(
-					'known_addresses' => $known_addresses,
-					'date' => $date
-				));
-			}	
+	} else if ($subtype=="known_addresses") {
+		if ($pattern == "30days") {
+			$valid_access=1;
+			header('Content-Type: application/json');
+			$query="SELECT (total_addresses_used+total_addresses_unused) AS known_addresses , CONCAT(YEAR(FROM_UNIXTIME( time )),'-',MONTH(FROM_UNIXTIME( time )),'-',DAY(FROM_UNIXTIME( time ))) AS 'date'
+			FROM blocks
+			WHERE
+			FROM_UNIXTIME( time ) > SUBDATE(FROM_UNIXTIME( time ), INTERVAL 31 DAY)
+			GROUP BY CONCAT(YEAR(FROM_UNIXTIME( time )),'-',MONTH(FROM_UNIXTIME( time )),'-',DAY(FROM_UNIXTIME( time ))) 
+			ORDER BY height DESC LIMIT 30";
+			$result = mysqli_query($dbconn,$query);
+			$data_array=array();
+			while($row = $result->fetch_assoc())
+			{
+				$known_addresses = $row['known_addresses'];
+				$date = $row['date'];
+				if (isset($known_addresses)) {			
+					array_push($data_array,array(
+						'known_addresses' => $known_addresses,
+						'date' => $date
+					));
+				}	
+			}
+			if (isset($known_addresses)) {		
+				echo json_encode($data_array, JSON_PRETTY_PRINT);
+			} else {
+				echo json_encode(array('error' => 'Could not decode hash'), JSON_PRETTY_PRINT);
+			}
 		}
-		if (isset($known_addresses)) {		
-			echo json_encode($data_array, JSON_PRETTY_PRINT);
-		} else {
-			echo json_encode(array('error' => 'Could not decode hash'), JSON_PRETTY_PRINT);
+		if ($pattern == "60days") {
+			$valid_access=1;
+			header('Content-Type: application/json');
+			$query="SELECT (total_addresses_used+total_addresses_unused) AS known_addresses , CONCAT(YEAR(FROM_UNIXTIME( time )),'-',MONTH(FROM_UNIXTIME( time )),'-',DAY(FROM_UNIXTIME( time ))) AS 'date'
+			FROM blocks
+			WHERE
+			FROM_UNIXTIME( time ) > SUBDATE(FROM_UNIXTIME( time ), INTERVAL 31 DAY)
+			GROUP BY CONCAT(YEAR(FROM_UNIXTIME( time )),'-',MONTH(FROM_UNIXTIME( time )),'-',DAY(FROM_UNIXTIME( time ))) 
+			ORDER BY height DESC LIMIT 60";
+			$result = mysqli_query($dbconn,$query);
+			$data_array=array();
+			while($row = $result->fetch_assoc())
+			{
+				$known_addresses = $row['known_addresses'];
+				$date = $row['date'];
+				if (isset($known_addresses)) {			
+					array_push($data_array,array(
+						'known_addresses' => $known_addresses,
+						'date' => $date
+					));
+				}	
+			}
+			if (isset($known_addresses)) {		
+				echo json_encode($data_array, JSON_PRETTY_PRINT);
+			} else {
+				echo json_encode(array('error' => 'Could not decode hash'), JSON_PRETTY_PRINT);
+			}
+		}
+		
+	} else if ($subtype=="addresses_in_use") {
+		if ($pattern == "30days") {
+			$valid_access=1;
+			header('Content-Type: application/json');
+			$query="SELECT total_addresses_used, CONCAT(YEAR(FROM_UNIXTIME( time )),'-',MONTH(FROM_UNIXTIME( time )),'-',DAY(FROM_UNIXTIME( time ))) AS 'date'
+			FROM blocks
+			WHERE
+			FROM_UNIXTIME( time ) > SUBDATE(FROM_UNIXTIME( time ), INTERVAL 31 DAY)
+			GROUP BY CONCAT(YEAR(FROM_UNIXTIME( time )),'-',MONTH(FROM_UNIXTIME( time )),'-',DAY(FROM_UNIXTIME( time ))) 
+			ORDER BY height DESC LIMIT 30";
+			$result = mysqli_query($dbconn,$query);
+			$data_array=array();
+			while($row = $result->fetch_assoc())
+			{
+				$total_addresses_used = $row['total_addresses_used'];
+				$date = $row['date'];
+				if (isset($total_addresses_used)) {			
+					array_push($data_array,array(
+						'addresses_in_use' => $total_addresses_used,
+						'date' => $date
+					));
+				}	
+			}
+			if (isset($total_addresses_used)) {		
+				echo json_encode($data_array, JSON_PRETTY_PRINT);
+			} else {
+				echo json_encode(array('error' => 'Could not decode hash'), JSON_PRETTY_PRINT);
+			}
+		}
+		if ($pattern == "60days") {
+			$valid_access=1;
+			header('Content-Type: application/json');
+			$query="SELECT total_addresses_used, CONCAT(YEAR(FROM_UNIXTIME( time )),'-',MONTH(FROM_UNIXTIME( time )),'-',DAY(FROM_UNIXTIME( time ))) AS 'date'
+			FROM blocks
+			WHERE
+			FROM_UNIXTIME( time ) > SUBDATE(FROM_UNIXTIME( time ), INTERVAL 31 DAY)
+			GROUP BY CONCAT(YEAR(FROM_UNIXTIME( time )),'-',MONTH(FROM_UNIXTIME( time )),'-',DAY(FROM_UNIXTIME( time ))) 
+			ORDER BY height DESC LIMIT 60";
+			$result = mysqli_query($dbconn,$query);
+			$data_array=array();
+			while($row = $result->fetch_assoc())
+			{
+				$total_addresses_used = $row['total_addresses_used'];
+				$date = $row['date'];
+				if (isset($total_addresses_used)) {			
+					array_push($data_array,array(
+						'addresses_in_use' => $total_addresses_used,
+						'date' => $date
+					));
+				}	
+			}
+			if (isset($total_addresses_used)) {		
+				echo json_encode($data_array, JSON_PRETTY_PRINT);
+			} else {
+				echo json_encode(array('error' => 'Could not decode hash'), JSON_PRETTY_PRINT);
+			}
 		}
 
-	} else if ($subtype=="addresses_in_use" && $pattern == "30days") {
-		$valid_access=1;
-		header('Content-Type: application/json');
-		$query="SELECT total_addresses_used, CONCAT(YEAR(FROM_UNIXTIME( time )),'-',MONTH(FROM_UNIXTIME( time )),'-',DAY(FROM_UNIXTIME( time ))) AS 'date'
-		FROM blocks
-		WHERE
-		FROM_UNIXTIME( time ) > SUBDATE(FROM_UNIXTIME( time ), INTERVAL 31 DAY)
-		GROUP BY CONCAT(YEAR(FROM_UNIXTIME( time )),'-',MONTH(FROM_UNIXTIME( time )),'-',DAY(FROM_UNIXTIME( time ))) 
-		ORDER BY height DESC LIMIT 30";
-		$result = mysqli_query($dbconn,$query);
-		$data_array=array();
-		while($row = $result->fetch_assoc())
-		{
-			$total_addresses_used = $row['total_addresses_used'];
-			$date = $row['date'];
-			if (isset($total_addresses_used)) {			
-				array_push($data_array,array(
-					'addresses_in_use' => $total_addresses_used,
-					'date' => $date
-				));
-			}	
+	} else if ($subtype=="empty_addresses") {
+		if ($pattern == "30days") {
+			$valid_access=1;
+			header('Content-Type: application/json');
+			$query="SELECT total_addresses_unused, CONCAT(YEAR(FROM_UNIXTIME( time )),'-',MONTH(FROM_UNIXTIME( time )),'-',DAY(FROM_UNIXTIME( time ))) AS 'date'
+			FROM blocks
+			WHERE
+			FROM_UNIXTIME( time ) > SUBDATE(FROM_UNIXTIME( time ), INTERVAL 31 DAY)
+			GROUP BY CONCAT(YEAR(FROM_UNIXTIME( time )),'-',MONTH(FROM_UNIXTIME( time )),'-',DAY(FROM_UNIXTIME( time ))) 
+			ORDER BY height DESC LIMIT 30";
+			$result = mysqli_query($dbconn,$query);
+			$data_array=array();
+			while($row = $result->fetch_assoc())
+			{
+				$total_addresses_unused = $row['total_addresses_unused'];
+				$date = $row['date'];
+				if (isset($total_addresses_unused)) {			
+					array_push($data_array,array(
+						'empty_addresses' => $total_addresses_unused,
+						'date' => $date
+					));
+				}	
+			}
+			if (isset($total_addresses_unused)) {		
+				echo json_encode($data_array, JSON_PRETTY_PRINT);
+			} else {
+				echo json_encode(array('error' => 'Could not decode hash'), JSON_PRETTY_PRINT);
+			}
 		}
-		if (isset($total_addresses_used)) {		
-			echo json_encode($data_array, JSON_PRETTY_PRINT);
-		} else {
-			echo json_encode(array('error' => 'Could not decode hash'), JSON_PRETTY_PRINT);
+		if ($pattern == "60days") {
+			$valid_access=1;
+			header('Content-Type: application/json');
+			$query="SELECT total_addresses_unused, CONCAT(YEAR(FROM_UNIXTIME( time )),'-',MONTH(FROM_UNIXTIME( time )),'-',DAY(FROM_UNIXTIME( time ))) AS 'date'
+			FROM blocks
+			WHERE
+			FROM_UNIXTIME( time ) > SUBDATE(FROM_UNIXTIME( time ), INTERVAL 31 DAY)
+			GROUP BY CONCAT(YEAR(FROM_UNIXTIME( time )),'-',MONTH(FROM_UNIXTIME( time )),'-',DAY(FROM_UNIXTIME( time ))) 
+			ORDER BY height DESC LIMIT 60";
+			$result = mysqli_query($dbconn,$query);
+			$data_array=array();
+			while($row = $result->fetch_assoc())
+			{
+				$total_addresses_unused = $row['total_addresses_unused'];
+				$date = $row['date'];
+				if (isset($total_addresses_unused)) {			
+					array_push($data_array,array(
+						'empty_addresses' => $total_addresses_unused,
+						'date' => $date
+					));
+				}	
+			}
+			if (isset($total_addresses_unused)) {		
+				echo json_encode($data_array, JSON_PRETTY_PRINT);
+			} else {
+				echo json_encode(array('error' => 'Could not decode hash'), JSON_PRETTY_PRINT);
+			}
 		}
 
-	} else if ($subtype=="empty_addresses" && $pattern == "30days") {
-		$valid_access=1;
-		header('Content-Type: application/json');
-		$query="SELECT total_addresses_unused, CONCAT(YEAR(FROM_UNIXTIME( time )),'-',MONTH(FROM_UNIXTIME( time )),'-',DAY(FROM_UNIXTIME( time ))) AS 'date'
-		FROM blocks
-		WHERE
-		FROM_UNIXTIME( time ) > SUBDATE(FROM_UNIXTIME( time ), INTERVAL 31 DAY)
-		GROUP BY CONCAT(YEAR(FROM_UNIXTIME( time )),'-',MONTH(FROM_UNIXTIME( time )),'-',DAY(FROM_UNIXTIME( time ))) 
-		ORDER BY height DESC LIMIT 30";
-		$result = mysqli_query($dbconn,$query);
-		$data_array=array();
-		while($row = $result->fetch_assoc())
-		{
-			$total_addresses_unused = $row['total_addresses_unused'];
-			$date = $row['date'];
-			if (isset($total_addresses_unused)) {			
-				array_push($data_array,array(
-					'empty_addresses' => $total_addresses_unused,
-					'date' => $date
-				));
-			}	
+	} else if ($subtype=="chain_size") {
+		if ($pattern == "30days") {
+			$valid_access=1;
+			header('Content-Type: application/json');
+			$query="SELECT ((SELECT SUM(size) FROM blocks)) AS 'total_size', SUM(size) AS 'size', CONCAT(YEAR(FROM_UNIXTIME( time )),'-',MONTH(FROM_UNIXTIME( time )),'-',DAY(FROM_UNIXTIME( time ))) AS 'date'
+			FROM blocks
+			GROUP BY CONCAT(YEAR(FROM_UNIXTIME( time )),'-',MONTH(FROM_UNIXTIME( time )),'-',DAY(FROM_UNIXTIME( time ))) 
+			ORDER BY height DESC LIMIT 30;";
+			$result = mysqli_query($dbconn,$query);
+			$data_array=array();
+			$count=0;
+			while($row = $result->fetch_assoc())
+			{
+				if ($count == 0) {
+					$total_size = $row['total_size'];
+				} 
+				$count++;
+				$size = $row['size'];
+				$total_size -= $size;
+				$date = $row['date'];
+				if (isset($total_size)) {			
+					array_push($data_array,array(
+						'total_size' => round($total_size/1024,2),
+						'date' => $date
+					));
+				}	
+			}
+			if (isset($total_size)) {		
+				echo json_encode($data_array, JSON_PRETTY_PRINT);
+			} else {
+				echo json_encode(array('error' => 'Could not decode hash'), JSON_PRETTY_PRINT);
+			}
 		}
-		if (isset($total_addresses_unused)) {		
-			echo json_encode($data_array, JSON_PRETTY_PRINT);
-		} else {
-			echo json_encode(array('error' => 'Could not decode hash'), JSON_PRETTY_PRINT);
+		if ($pattern == "60days") {
+			$valid_access=1;
+			header('Content-Type: application/json');
+			$query="SELECT ((SELECT SUM(size) FROM blocks)) AS 'total_size', SUM(size) AS 'size', CONCAT(YEAR(FROM_UNIXTIME( time )),'-',MONTH(FROM_UNIXTIME( time )),'-',DAY(FROM_UNIXTIME( time ))) AS 'date'
+			FROM blocks
+			GROUP BY CONCAT(YEAR(FROM_UNIXTIME( time )),'-',MONTH(FROM_UNIXTIME( time )),'-',DAY(FROM_UNIXTIME( time ))) 
+			ORDER BY height DESC LIMIT 60;";
+			$result = mysqli_query($dbconn,$query);
+			$data_array=array();
+			$count=0;
+			while($row = $result->fetch_assoc())
+			{
+				if ($count == 0) {
+					$total_size = $row['total_size'];
+				} 
+				$count++;
+				$size = $row['size'];
+				$total_size -= $size;
+				$date = $row['date'];
+				if (isset($total_size)) {			
+					array_push($data_array,array(
+						'total_size' => round($total_size/1024,2),
+						'date' => $date
+					));
+				}	
+			}
+			if (isset($total_size)) {		
+				echo json_encode($data_array, JSON_PRETTY_PRINT);
+			} else {
+				echo json_encode(array('error' => 'Could not decode hash'), JSON_PRETTY_PRINT);
+			}
 		}
-
-	} else if ($subtype=="chain_size" && $pattern == "30days") {
-		$valid_access=1;
-		header('Content-Type: application/json');
-		$query="SELECT ((SELECT SUM(size) FROM blocks)) AS 'total_size', SUM(size) AS 'size', CONCAT(YEAR(FROM_UNIXTIME( time )),'-',MONTH(FROM_UNIXTIME( time )),'-',DAY(FROM_UNIXTIME( time ))) AS 'date'
-		FROM blocks
-		GROUP BY CONCAT(YEAR(FROM_UNIXTIME( time )),'-',MONTH(FROM_UNIXTIME( time )),'-',DAY(FROM_UNIXTIME( time ))) 
-		ORDER BY height DESC LIMIT 30;";
-		$result = mysqli_query($dbconn,$query);
-		$data_array=array();
-		$count=0;
-		while($row = $result->fetch_assoc())
-		{
-			if ($count == 0) {
-				$total_size = $row['total_size'];
-			} 
-			$count++;
-			$size = $row['size'];
-			$total_size -= $size;
-			$date = $row['date'];
-			if (isset($total_size)) {			
-				array_push($data_array,array(
-					'total_size' => round($total_size/1024,2),
-					'date' => $date
-				));
-			}	
-		}
-		if (isset($total_size)) {		
-			echo json_encode($data_array, JSON_PRETTY_PRINT);
-		} else {
-			echo json_encode(array('error' => 'Could not decode hash'), JSON_PRETTY_PRINT);
-		}
+		
 
 	} else {
 		echo json_encode(array('error' => 'Unknown API call'), JSON_PRETTY_PRINT); exit;
