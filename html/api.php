@@ -941,21 +941,32 @@ if ($type=="stats" && $subtype!="")
 			WHERE
 			FROM_UNIXTIME( time ) > SUBDATE(FROM_UNIXTIME( time ), INTERVAL 31 DAY)
 			GROUP BY CONCAT(YEAR(FROM_UNIXTIME( time )),'-',MONTH(FROM_UNIXTIME( time )),'-',DAY(FROM_UNIXTIME( time ))) 
-			ORDER BY height DESC LIMIT 30";
+			ORDER BY height DESC LIMIT 31";
 			$result = mysqli_query($dbconn,$query);
 			$data_array=array();
+			$known_addresses=array();
+			$date=array();
 			while($row = $result->fetch_assoc())
 			{
-				$known_addresses = $row['known_addresses'];
-				$date = $row['date'];
-				if (isset($known_addresses)) {			
-					array_push($data_array,array(
-						'known_addresses' => $known_addresses,
-						'date' => $date
-					));
-				}	
+				array_push($known_addresses, $row['known_addresses']);
+				array_push($date,$row['date']);
 			}
-			if (isset($known_addresses)) {		
+			for ($i = 0; $i < count($known_addresses)-1; $i++) {
+				if (isset($known_addresses[$i+1])) {
+					$change = $known_addresses[$i] - $known_addresses[$i+1];
+					$percentChange = ($known_addresses[$i] - $known_addresses[$i+1]) / $known_addresses[$i] * 100;
+				} else {
+					$change = 0;
+					$percentChange = 0;
+				}
+				array_push($data_array,array(
+						'known_addresses' => $known_addresses[$i],
+						'change' => $change,
+						'%change' => $percentChange,
+						'date' => $date[$i]
+					));
+			}
+			if (isset($data_array)) {		
 				echo json_encode($data_array, JSON_PRETTY_PRINT);
 			} else {
 				echo json_encode(array('error' => 'Could not decode hash'), JSON_PRETTY_PRINT);
@@ -969,21 +980,32 @@ if ($type=="stats" && $subtype!="")
 			WHERE
 			FROM_UNIXTIME( time ) > SUBDATE(FROM_UNIXTIME( time ), INTERVAL 31 DAY)
 			GROUP BY CONCAT(YEAR(FROM_UNIXTIME( time )),'-',MONTH(FROM_UNIXTIME( time )),'-',DAY(FROM_UNIXTIME( time ))) 
-			ORDER BY height DESC LIMIT 60";
+			ORDER BY height DESC LIMIT 61";
 			$result = mysqli_query($dbconn,$query);
 			$data_array=array();
+			$known_addresses=array();
+			$date=array();
 			while($row = $result->fetch_assoc())
 			{
-				$known_addresses = $row['known_addresses'];
-				$date = $row['date'];
-				if (isset($known_addresses)) {			
-					array_push($data_array,array(
-						'known_addresses' => $known_addresses,
-						'date' => $date
-					));
-				}	
+				array_push($known_addresses, $row['known_addresses']);
+				array_push($date,$row['date']);
 			}
-			if (isset($known_addresses)) {		
+			for ($i = 0; $i < count($known_addresses)-1; $i++) {
+				if (isset($known_addresses[$i+1])) {
+					$change = $known_addresses[$i] - $known_addresses[$i+1];
+					$percentChange = ($known_addresses[$i] - $known_addresses[$i+1]) / $known_addresses[$i] * 100;
+				} else {
+					$change = 0;
+					$percentChange = 0;
+				}
+				array_push($data_array,array(
+						'known_addresses' => $known_addresses[$i],
+						'change' => $change,
+						'%change' => $percentChange,
+						'date' => $date[$i]
+					));
+			}
+			if (isset($data_array)) {		
 				echo json_encode($data_array, JSON_PRETTY_PRINT);
 			} else {
 				echo json_encode(array('error' => 'Could not decode hash'), JSON_PRETTY_PRINT);
@@ -999,21 +1021,32 @@ if ($type=="stats" && $subtype!="")
 			WHERE
 			FROM_UNIXTIME( time ) > SUBDATE(FROM_UNIXTIME( time ), INTERVAL 31 DAY)
 			GROUP BY CONCAT(YEAR(FROM_UNIXTIME( time )),'-',MONTH(FROM_UNIXTIME( time )),'-',DAY(FROM_UNIXTIME( time ))) 
-			ORDER BY height DESC LIMIT 30";
+			ORDER BY height DESC LIMIT 31";
 			$result = mysqli_query($dbconn,$query);
 			$data_array=array();
+			$total_addresses_used=array();
+			$date=array();
 			while($row = $result->fetch_assoc())
 			{
-				$total_addresses_used = $row['total_addresses_used'];
-				$date = $row['date'];
-				if (isset($total_addresses_used)) {			
-					array_push($data_array,array(
-						'addresses_in_use' => $total_addresses_used,
-						'date' => $date
-					));
-				}	
+				array_push($total_addresses_used, $row['total_addresses_used']);
+				array_push($date,$row['date']);
 			}
-			if (isset($total_addresses_used)) {		
+			for ($i = 0; $i < count($total_addresses_used)-1; $i++) {
+				if (isset($total_addresses_used[$i+1])) {
+					$change = $total_addresses_used[$i] - $total_addresses_used[$i+1];
+					$percentChange = ($total_addresses_used[$i] - $total_addresses_used[$i+1]) / $total_addresses_used[$i] * 100;
+				} else {
+					$change = 0;
+					$percentChange = 0;
+				}
+				array_push($data_array,array(
+						'addresses_in_use' => $total_addresses_used[$i],
+						'change' => $change,
+						'%change' => $percentChange,
+						'date' => $date[$i]
+					));
+			}
+			if (isset($data_array)) {		
 				echo json_encode($data_array, JSON_PRETTY_PRINT);
 			} else {
 				echo json_encode(array('error' => 'Could not decode hash'), JSON_PRETTY_PRINT);
@@ -1027,21 +1060,32 @@ if ($type=="stats" && $subtype!="")
 			WHERE
 			FROM_UNIXTIME( time ) > SUBDATE(FROM_UNIXTIME( time ), INTERVAL 31 DAY)
 			GROUP BY CONCAT(YEAR(FROM_UNIXTIME( time )),'-',MONTH(FROM_UNIXTIME( time )),'-',DAY(FROM_UNIXTIME( time ))) 
-			ORDER BY height DESC LIMIT 60";
+			ORDER BY height DESC LIMIT 61";
 			$result = mysqli_query($dbconn,$query);
 			$data_array=array();
+			$total_addresses_used=array();
+			$date=array();
 			while($row = $result->fetch_assoc())
 			{
-				$total_addresses_used = $row['total_addresses_used'];
-				$date = $row['date'];
-				if (isset($total_addresses_used)) {			
-					array_push($data_array,array(
-						'addresses_in_use' => $total_addresses_used,
-						'date' => $date
-					));
-				}	
+				array_push($total_addresses_used, $row['total_addresses_used']);
+				array_push($date,$row['date']);
 			}
-			if (isset($total_addresses_used)) {		
+			for ($i = 0; $i < count($total_addresses_used)-1; $i++) {
+				if (isset($total_addresses_used[$i+1])) {
+					$change = $total_addresses_used[$i] - $total_addresses_used[$i+1];
+					$percentChange = ($total_addresses_used[$i] - $total_addresses_used[$i+1]) / $total_addresses_used[$i] * 100;
+				} else {
+					$change = 0;
+					$percentChange = 0;
+				}
+				array_push($data_array,array(
+						'addresses_in_use' => $total_addresses_used[$i],
+						'change' => $change,
+						'%change' => $percentChange,
+						'date' => $date[$i]
+					));
+			}
+			if (isset($data_array)) {		
 				echo json_encode($data_array, JSON_PRETTY_PRINT);
 			} else {
 				echo json_encode(array('error' => 'Could not decode hash'), JSON_PRETTY_PRINT);
@@ -1057,21 +1101,32 @@ if ($type=="stats" && $subtype!="")
 			WHERE
 			FROM_UNIXTIME( time ) > SUBDATE(FROM_UNIXTIME( time ), INTERVAL 31 DAY)
 			GROUP BY CONCAT(YEAR(FROM_UNIXTIME( time )),'-',MONTH(FROM_UNIXTIME( time )),'-',DAY(FROM_UNIXTIME( time ))) 
-			ORDER BY height DESC LIMIT 30";
+			ORDER BY height DESC LIMIT 31";
 			$result = mysqli_query($dbconn,$query);
 			$data_array=array();
+			$total_addresses_unused=array();
+			$date=array();
 			while($row = $result->fetch_assoc())
 			{
-				$total_addresses_unused = $row['total_addresses_unused'];
-				$date = $row['date'];
-				if (isset($total_addresses_unused)) {			
-					array_push($data_array,array(
-						'empty_addresses' => $total_addresses_unused,
-						'date' => $date
-					));
-				}	
+				array_push($total_addresses_unused, $row['total_addresses_unused']);
+				array_push($date,$row['date']);
 			}
-			if (isset($total_addresses_unused)) {		
+			for ($i = 0; $i < count($total_addresses_unused)-1; $i++) {
+				if (isset($total_addresses_unused[$i+1])) {
+					$change = $total_addresses_unused[$i] - $total_addresses_unused[$i+1];
+					$percentChange = ($total_addresses_unused[$i] - $total_addresses_unused[$i+1]) / $total_addresses_unused[$i] * 100;
+				} else {
+					$change = 0;
+					$percentChange = 0;
+				}
+				array_push($data_array,array(
+						'empty_addresses' => $total_addresses_unused[$i],
+						'change' => $change,
+						'%change' => $percentChange,
+						'date' => $date[$i]
+					));
+			}
+			if (isset($data_array)) {		
 				echo json_encode($data_array, JSON_PRETTY_PRINT);
 			} else {
 				echo json_encode(array('error' => 'Could not decode hash'), JSON_PRETTY_PRINT);
@@ -1085,19 +1140,30 @@ if ($type=="stats" && $subtype!="")
 			WHERE
 			FROM_UNIXTIME( time ) > SUBDATE(FROM_UNIXTIME( time ), INTERVAL 31 DAY)
 			GROUP BY CONCAT(YEAR(FROM_UNIXTIME( time )),'-',MONTH(FROM_UNIXTIME( time )),'-',DAY(FROM_UNIXTIME( time ))) 
-			ORDER BY height DESC LIMIT 60";
+			ORDER BY height DESC LIMIT 61";
 			$result = mysqli_query($dbconn,$query);
 			$data_array=array();
+			$total_addresses_unused=array();
+			$date=array();
 			while($row = $result->fetch_assoc())
 			{
-				$total_addresses_unused = $row['total_addresses_unused'];
-				$date = $row['date'];
-				if (isset($total_addresses_unused)) {			
-					array_push($data_array,array(
-						'empty_addresses' => $total_addresses_unused,
-						'date' => $date
+				array_push($total_addresses_unused, $row['total_addresses_unused']);
+				array_push($date,$row['date']);
+			}
+			for ($i = 0; $i < count($total_addresses_unused)-1; $i++) {
+				if (isset($total_addresses_unused[$i+1])) {
+					$change = $total_addresses_unused[$i] - $total_addresses_unused[$i+1];
+					$percentChange = ($total_addresses_unused[$i] - $total_addresses_unused[$i+1]) / $total_addresses_unused[$i] * 100;
+				} else {
+					$change = 0;
+					$percentChange = 0;
+				}
+				array_push($data_array,array(
+						'empty_addresses' => $total_addresses_unused[$i],
+						'change' => $change,
+						'%change' => $percentChange,
+						'date' => $date[$i]
 					));
-				}	
 			}
 			if (isset($total_addresses_unused)) {		
 				echo json_encode($data_array, JSON_PRETTY_PRINT);
@@ -1113,27 +1179,38 @@ if ($type=="stats" && $subtype!="")
 			$query="SELECT ((SELECT SUM(size) FROM blocks)) AS 'total_size', SUM(size) AS 'size', CONCAT(YEAR(FROM_UNIXTIME( time )),'-',MONTH(FROM_UNIXTIME( time )),'-',DAY(FROM_UNIXTIME( time ))) AS 'date'
 			FROM blocks
 			GROUP BY CONCAT(YEAR(FROM_UNIXTIME( time )),'-',MONTH(FROM_UNIXTIME( time )),'-',DAY(FROM_UNIXTIME( time ))) 
-			ORDER BY height DESC LIMIT 30;";
+			ORDER BY height DESC LIMIT 31;";
 			$result = mysqli_query($dbconn,$query);
 			$data_array=array();
+			$chain_size=array();
+			$date=array();
 			$count=0;
-			while($row = $result->fetch_assoc())
-			{
+			while($row = $result->fetch_assoc()) {
 				if ($count == 0) {
 					$total_size = $row['total_size'];
 				} 
 				$count++;
 				$size = $row['size'];
 				$total_size -= $size;
-				$date = $row['date'];
-				if (isset($total_size)) {			
-					array_push($data_array,array(
-						'total_size' => round($total_size/1024,2),
-						'date' => $date
-					));
-				}	
+				array_push($chain_size, $total_size);
+				array_push($date,$row['date']);
 			}
-			if (isset($total_size)) {		
+			for ($i = 0; $i < count($chain_size)-1; $i++) {
+				if (isset($chain_size[$i+1])) {
+					$change = $chain_size[$i] - $chain_size[$i+1];
+					$percentChange = ($chain_size[$i] - $chain_size[$i+1]) / $chain_size[$i] * 100;
+				} else {
+					$change = 0;
+					$percentChange = 0;
+				}
+				array_push($data_array,array(
+						'chain_size' => round($chain_size[$i]/1024,2),
+						'change' => round($change/1024,2),
+						'%change' => $percentChange,
+						'date' => $date[$i]
+					));
+			}
+			if (isset($data_array)) {		
 				echo json_encode($data_array, JSON_PRETTY_PRINT);
 			} else {
 				echo json_encode(array('error' => 'Could not decode hash'), JSON_PRETTY_PRINT);
@@ -1145,27 +1222,38 @@ if ($type=="stats" && $subtype!="")
 			$query="SELECT ((SELECT SUM(size) FROM blocks)) AS 'total_size', SUM(size) AS 'size', CONCAT(YEAR(FROM_UNIXTIME( time )),'-',MONTH(FROM_UNIXTIME( time )),'-',DAY(FROM_UNIXTIME( time ))) AS 'date'
 			FROM blocks
 			GROUP BY CONCAT(YEAR(FROM_UNIXTIME( time )),'-',MONTH(FROM_UNIXTIME( time )),'-',DAY(FROM_UNIXTIME( time ))) 
-			ORDER BY height DESC LIMIT 60;";
+			ORDER BY height DESC LIMIT 61;";
 			$result = mysqli_query($dbconn,$query);
 			$data_array=array();
+			$chain_size=array();
+			$date=array();
 			$count=0;
-			while($row = $result->fetch_assoc())
-			{
+			while($row = $result->fetch_assoc()) {
 				if ($count == 0) {
 					$total_size = $row['total_size'];
 				} 
 				$count++;
 				$size = $row['size'];
 				$total_size -= $size;
-				$date = $row['date'];
-				if (isset($total_size)) {			
-					array_push($data_array,array(
-						'total_size' => round($total_size/1024,2),
-						'date' => $date
-					));
-				}	
+				array_push($chain_size, $total_size);
+				array_push($date,$row['date']);
 			}
-			if (isset($total_size)) {		
+			for ($i = 0; $i < count($chain_size)-1; $i++) {
+				if (isset($chain_size[$i+1])) {
+					$change = $chain_size[$i] - $chain_size[$i+1];
+					$percentChange = ($chain_size[$i] - $chain_size[$i+1]) / $chain_size[$i] * 100;
+				} else {
+					$change = 0;
+					$percentChange = 0;
+				}
+				array_push($data_array,array(
+						'chain_size' => round($chain_size[$i]/1024,2),
+						'change' => round($change/1024,2),
+						'%change' => $percentChange,
+						'date' => $date[$i]
+					));
+			}
+			if (isset($data_array)) {		
 				echo json_encode($data_array, JSON_PRETTY_PRINT);
 			} else {
 				echo json_encode(array('error' => 'Could not decode hash'), JSON_PRETTY_PRINT);

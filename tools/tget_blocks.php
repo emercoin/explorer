@@ -14,6 +14,7 @@ function getblockinfo($dbconn, $emercoin, $hash) {
 	$version=$block['version'];
 	$merkleroot=$block['merkleroot'];
 	$time=$block['time'];
+	$blocktime = $time;
 	//$time=strtotime($time);
 	$nonce=$block['nonce'];
 	$bits=$block['bits'];
@@ -24,7 +25,7 @@ function getblockinfo($dbconn, $emercoin, $hash) {
 	$oldtime=0;
 	if (isset($block['previousblockhash'])){
 		$previousblockhash=$block['previousblockhash'];
-		$query="SELECT time, mint, total_coins, total_coindays FROM blocks WHERE hash = '$previousblockhash'";
+		$query="SELECT time, total_coins, total_coindays FROM blocks WHERE hash = '$previousblockhash'";
 		$result = $dbconn->query($query);
 		while($row = $result->fetch_assoc())
 		{
@@ -199,7 +200,7 @@ function getblockinfo($dbconn, $emercoin, $hash) {
 			$total_coins=bcsub(bcadd($total_coins,$mint,9),bcadd($mint,$feetotal,9),9);
 		}
 		//calculate total_coindays bcdiv($timediff,86400,9)
-		$total_coindays=bcadd($total_coindays,bcsub(bcmul($total_coins_old,bcdiv(bcsub($time,$oldtime,9),86400,9),9),$coindaysdestroyedtotal,9),9);
+		$total_coindays=bcadd($total_coindays,bcsub(bcmul($total_coins_old,bcdiv(bcsub($blocktime,$oldtime,9),86400,9),9),$coindaysdestroyedtotal,9),9);
 		if ($total_coins!=0) {
 			$total_avgcoindays=bcdiv($total_coindays,$total_coins,9);
 		} else {
@@ -239,27 +240,29 @@ function getblockinfo($dbconn, $emercoin, $hash) {
 			$result = $dbconn->query($query);
 			$tx_ID=$dbconn -> insert_id;
 			$vin=gettxinput($dbconn, $emercoin, $txid, $tx_ID, $new_ID, $sentaddress);
-			foreach ($vin['sentaddressarray'] as $address => $value) {
-				if ($addressquery=="") {
-					$addressquery="address='".$address."'";
-				} else {
-					$addressquery.="OR address='".$address."'";
+			if (isset($vin['sentaddressarray'])) {
+				foreach ($vin['sentaddressarray'] as $address => $value) {
+					if ($addressquery=="") {
+						$addressquery="address='".$address."'";
+					} else {
+						$addressquery.="OR address='".$address."'";
+					}
+					if (!isset($addresses[$address]['value'])) {
+						$addresses[$address]['value']=bcsub(0,$value['sent'],8);
+						$addresses[$address]['senttime']=$value['time'];
+					} else {
+						$addresses[$address]['value']=bcsub($addresses[$address]['value'],$value['sent'],8);
+						$addresses[$address]['senttime']=$value['time'];
+					}
+					if (!isset($addresses[$address]['sentvalue'])) {
+						$addresses[$address]['sentvalue']=$value['sent'];
+						$addresses[$address]['sentcount']=1;
+					} else {
+						$addresses[$address]['sentvalue']=bcadd($addresses[$address]['sentvalue'],$value['sent'],8);
+						$addresses[$address]['sentcount']++;
+					}
+					$senttransactionaddress[$txid][$address]="1";
 				}
-				if (!isset($addresses[$address]['value'])) {
-					$addresses[$address]['value']=bcsub(0,$value['sent'],8);
-					$addresses[$address]['senttime']=$value['time'];
-				} else {
-					$addresses[$address]['value']=bcsub($addresses[$address]['value'],$value['sent'],8);
-					$addresses[$address]['senttime']=$value['time'];
-				}
-				if (!isset($addresses[$address]['sentvalue'])) {
-					$addresses[$address]['sentvalue']=$value['sent'];
-					$addresses[$address]['sentcount']=1;
-				} else {
-					$addresses[$address]['sentvalue']=bcadd($addresses[$address]['sentvalue'],$value['sent'],8);
-					$addresses[$address]['sentcount']++;
-				}
-				$senttransactionaddress[$txid][$address]="1";
 			}
 			$valuein=$vin["valuein"];
 			$countvin=$vin["countvin"];
@@ -326,7 +329,7 @@ function getblockinfo($dbconn, $emercoin, $hash) {
 			$total_coins=bcsub(bcadd($total_coins,$mint,9),bcadd($mint,$feetotal,9),9);
 		}
 		//calculate total_coindays
-		$total_coindays=bcadd($total_coindays,bcsub(bcmul($total_coins_old,bcdiv(bcsub($time,$oldtime,9),86400,9),9),$coindaysdestroyedtotal,9),9);
+		$total_coindays=bcadd($total_coindays,bcsub(bcmul($total_coins_old,bcdiv(bcsub($blocktime,$oldtime,9),86400,9),9),$coindaysdestroyedtotal,9),9);
 		if ($total_coins!=0) {
 			$total_avgcoindays=bcdiv($total_coindays,$total_coins,9);
 		} else {
@@ -886,3 +889,4 @@ while($row = $result->fetch_assoc())
 }
 getblockinfo($dbconn, $emercoin, $hash);
 ?>
+

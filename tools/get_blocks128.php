@@ -14,6 +14,7 @@ function getblockinfo($dbconn, $emercoin, $hash) {
 	$version=$block['version'];
 	$merkleroot=$block['merkleroot'];
 	$time=$block['time'];
+	$blocktime=$time;
 	//$time=strtotime($time);
 	$nonce=$block['nonce'];
 	$bits=$block['bits'];
@@ -199,7 +200,7 @@ function getblockinfo($dbconn, $emercoin, $hash) {
 			$total_coins=bcsub(bcadd($total_coins,$mint,9),bcadd($mint,$feetotal,9),9);
 		}
 		//calculate total_coindays bcdiv($timediff,86400,9)
-		$total_coindays=bcadd($total_coindays,bcsub(bcmul($total_coins_old,bcdiv(bcsub($time,$oldtime,9),86400,9),9),$coindaysdestroyedtotal,9),9);
+		$total_coindays=bcadd($total_coindays,bcsub(bcmul($total_coins_old,bcdiv(bcsub($blocktime,$oldtime,9),86400,9),9),$coindaysdestroyedtotal,9),9);
 		if ($total_coins!=0) {
 			$total_avgcoindays=bcdiv($total_coindays,$total_coins,9);
 		} else {
@@ -326,7 +327,7 @@ function getblockinfo($dbconn, $emercoin, $hash) {
 			$total_coins=bcsub(bcadd($total_coins,$mint,9),bcadd($mint,$feetotal,9),9);
 		}
 		//calculate total_coindays
-		$total_coindays=bcadd($total_coindays,bcsub(bcmul($total_coins_old,bcdiv(bcsub($time,$oldtime,9),86400,9),9),$coindaysdestroyedtotal,9),9);
+		$total_coindays=bcadd($total_coindays,bcsub(bcmul($total_coins_old,bcdiv(bcsub($blocktime,$oldtime,9),86400,9),9),$coindaysdestroyedtotal,9),9);
 		if ($total_coins!=0) {
 			$total_avgcoindays=bcdiv($total_coindays,$total_coins,9);
 		} else {
