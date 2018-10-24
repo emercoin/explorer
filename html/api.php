@@ -962,7 +962,7 @@ if ($type=="stats" && $subtype!="")
 				array_push($data_array,array(
 						'known_addresses' => $known_addresses[$i],
 						'change' => $change,
-						'%change' => round($percentChange,2),
+						'percent_change' => round($percentChange,2),
 						'date' => $date[$i]
 					));
 			}
@@ -1001,7 +1001,7 @@ if ($type=="stats" && $subtype!="")
 				array_push($data_array,array(
 						'known_addresses' => $known_addresses[$i],
 						'change' => $change,
-						'%change' => round($percentChange,2),
+						'percent_change' => round($percentChange,2),
 						'date' => $date[$i]
 					));
 			}
@@ -1042,7 +1042,7 @@ if ($type=="stats" && $subtype!="")
 				array_push($data_array,array(
 						'addresses_in_use' => $total_addresses_used[$i],
 						'change' => $change,
-						'%change' => round($percentChange,2),
+						'percent_change' => round($percentChange,2),
 						'date' => $date[$i]
 					));
 			}
@@ -1081,7 +1081,7 @@ if ($type=="stats" && $subtype!="")
 				array_push($data_array,array(
 						'addresses_in_use' => $total_addresses_used[$i],
 						'change' => $change,
-						'%change' => round($percentChange,2),
+						'percent_change' => round($percentChange,2),
 						'date' => $date[$i]
 					));
 			}
@@ -1122,7 +1122,7 @@ if ($type=="stats" && $subtype!="")
 				array_push($data_array,array(
 						'empty_addresses' => $total_addresses_unused[$i],
 						'change' => $change,
-						'%change' => round($percentChange,2),
+						'percent_change' => round($percentChange,2),
 						'date' => $date[$i]
 					));
 			}
@@ -1161,7 +1161,7 @@ if ($type=="stats" && $subtype!="")
 				array_push($data_array,array(
 						'empty_addresses' => $total_addresses_unused[$i],
 						'change' => $change,
-						'%change' => round($percentChange,2),
+						'percent_change' => round($percentChange,2),
 						'date' => $date[$i]
 					));
 			}
@@ -1206,7 +1206,7 @@ if ($type=="stats" && $subtype!="")
 				array_push($data_array,array(
 						'chain_size' => round($chain_size[$i]/1024,2),
 						'change' => round($change/1024,2),
-						'%change' => round($percentChange,2),
+						'percent_change' => round($percentChange,2),
 						'date' => $date[$i]
 					));
 			}
@@ -1249,7 +1249,7 @@ if ($type=="stats" && $subtype!="")
 				array_push($data_array,array(
 						'chain_size' => round($chain_size[$i]/1024,2),
 						'change' => round($change/1024,2),
-						'%change' => round($percentChange,2),
+						'percent_change' => round($percentChange,2),
 						'date' => $date[$i]
 					));
 			}
