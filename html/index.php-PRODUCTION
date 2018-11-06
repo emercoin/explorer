@@ -235,11 +235,16 @@ if ($include_file=="api") {
 	};
 
 	function networkSwitch(network) {
+		var domain = document.location.hostname;
+		domain = domain.split('.');
+		if (typeof domain[3] == 'undefined') {
+			domain[3] = '';
+		}
 		if (network == "Mainnet") {
-			window.location.href = 'https://explorer.emercoin.com';
+			window.location.href = document.location.protocol+'//explorer.' + domain[1] + '.' + domain[2] + '' + domain[3] + window.location.pathname;
 		}
 		if (network == "Testnet") {
-			window.location.href = 'https://testnet.emercoin.com';
+			window.location.href = document.location.protocol+'//testnet.' + domain[1] + '.' + domain[2] + '' + domain[3] + window.location.pathname;
 		}
 	};
 

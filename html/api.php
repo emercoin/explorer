@@ -1188,10 +1188,11 @@ if ($type=="stats" && $subtype!="")
 			while($row = $result->fetch_assoc()) {
 				if ($count == 0) {
 					$total_size = $row['total_size'];
-				} 
+				} else {
+					$size = $row['size'];
+					$total_size -= $size;
+				}
 				$count++;
-				$size = $row['size'];
-				$total_size -= $size;
 				array_push($chain_size, $total_size);
 				array_push($date,$row['date']);
 			}
@@ -1228,31 +1229,53 @@ if ($type=="stats" && $subtype!="")
 			$chain_size=array();
 			$date=array();
 			$count=0;
+			$sum_change = 0;
+			$sum_percentChange = 0;
 			while($row = $result->fetch_assoc()) {
 				if ($count == 0) {
 					$total_size = $row['total_size'];
-				} 
+					$current_chain_size = $total_size;
+					$current_date = $row['date'];
+				} else {
+					$size = $row['size'];
+					$total_size -= $size;
+					$old_chain_size = $total_size;
+					$old_date = $row['date'];
+				}
 				$count++;
-				$size = $row['size'];
-				$total_size -= $size;
 				array_push($chain_size, $total_size);
 				array_push($date,$row['date']);
 			}
 			for ($i = 0; $i < count($chain_size)-1; $i++) {
 				if (isset($chain_size[$i+1])) {
 					$change = $chain_size[$i] - $chain_size[$i+1];
+					$sum_change += $change;
 					$percentChange = ($chain_size[$i] - $chain_size[$i+1]) / $chain_size[$i] * 100;
+					$sum_percentChange += $percentChange;
 				} else {
 					$change = 0;
 					$percentChange = 0;
 				}
-				array_push($data_array,array(
+				if ($details != "sum") {
+					array_push($data_array,array(
 						'chain_size' => round($chain_size[$i]/1024,2),
 						'change' => round($change/1024,2),
 						'percent_change' => round($percentChange,2),
 						'date' => $date[$i]
 					));
+				}
+				
 			}
+				if  ($details == "sum") {
+					array_push($data_array,array(
+						'current_chain_size' => round($current_chain_size/1024,2),
+						'old_chain_size' => round($old_chain_size/1024,2),
+						'change' => round($sum_change/1024,2),
+						'percent_change' => round($sum_percentChange,2),
+						'current_date' => $current_date,
+						'old_date' => $old_date
+					));
+				}
 			if (isset($data_array)) {		
 				echo json_encode($data_array, JSON_PRETTY_PRINT);
 			} else {
