@@ -239,6 +239,8 @@ if ($include_file=="api") {
 		domain = domain.split('.');
 		if (typeof domain[3] == 'undefined') {
 			domain[3] = '';
+		} else {
+			domain[3] = '.' + domain[3];
 		}
 		if (network == "Mainnet") {
 			window.location.href = document.location.protocol+'//explorer.' + domain[1] + '.' + domain[2] + '' + domain[3] + window.location.pathname;
