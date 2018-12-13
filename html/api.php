@@ -50,8 +50,8 @@ if ($type=="help")
 		'/api/stats/coin_supply' => 'returns the current coin supply',
 	);
 	$help=array(
-		'version' => '1.2.2',
-		'date' => '2017-03-14',
+		'version' => '1.2.3',
+		'date' => '2018-13-12',
 		'commands' => $commands
 	);
 	echo json_encode($help, JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT);
@@ -914,7 +914,6 @@ if ($type=="stats" && $subtype!="")
 		}
 	} else if ($subtype=="coin_supply") {
 		$valid_access=1;
-		header('Content-Type: application/json');
 		$query="SELECT total_coins FROM blocks ORDER BY height DESC LIMIT 1";
 		$result = mysqli_query($dbconn,$query);
 		$supply_array=array();
@@ -927,11 +926,23 @@ if ($type=="stats" && $subtype!="")
 				);
 			}	
 		}
-		if (isset($total_coins)) {		
-			echo json_encode($supply_array, JSON_PRETTY_PRINT);
+		$emc_info=$emercoin->getinfo();
+		$total_coins=$emc_info['moneysupply'];
+		if ($pattern != 'txt') {
+			header('Content-Type: application/json');
+			$supply_array=array(
+				'coin_supply' => round($total_coins,6)
+			);
+			if (isset($total_coins)) {		
+				echo json_encode($supply_array, JSON_PRETTY_PRINT);
+			} else {
+				echo json_encode(array('error' => 'Could not decode hash'), JSON_PRETTY_PRINT);
+			}
 		} else {
-			echo json_encode(array('error' => 'Could not decode hash'), JSON_PRETTY_PRINT);
+			header('Content-Type: text/html');
+			echo $total_coins;
 		}
+		
 	} else if ($subtype=="known_addresses") {
 		if ($pattern == "30days") {
 			$valid_access=1;
