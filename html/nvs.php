@@ -202,7 +202,7 @@ if ($type=="N/A"||$type=="n/a") {
 	$(function() {
   var availableTags = [];
 	$.ajax({
-	url: "/ajax/nvs/get_type.php?&network=<?php echo $_COOKIE['network']; ?>"
+	url: "/ajax/nvs/get_type.php"
 	})
 	.done(function( response ) {
 			availableTags=JSON.parse(response);

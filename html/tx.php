@@ -1,4 +1,6 @@
 <?php
+error_reporting(E_ALL);
+ini_set("display_errors", 1);
 if (isset($_SERVER['REQUEST_URI'])) {
 	$URI=explode('/',$_SERVER['REQUEST_URI']);
 	if ($URI[1]=="tx") {
@@ -56,7 +58,7 @@ if ($hash!="") {
 	}
 
 	$block = $emercoin->getblock($blockhash);
-
+echo "TEST";
 	if (isset($block['height'])) {
 		$height = $block['height'];
 		if ($confirmations<3) {$labelcolor="danger";};

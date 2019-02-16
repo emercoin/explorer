@@ -749,18 +749,27 @@ function gettxinput($dbconn, $emercoin, $txid, $txdbid, $blockid, $sentaddress) 
 			if (isset($vin["vout"])) {
 				//echo $vin["vout"]." ";
 				$vout=$vin["vout"];
-				$rawtransaction=$emercoin->getrawtransaction($vintxid,1);
-				$value=$rawtransaction["vout"][$vout]["value"];
-				if (isset($rawtransaction["vout"][$vout]["scriptPubKey"]["addresses"][0])) {
-					$address=$rawtransaction["vout"][$vout]["scriptPubKey"]["addresses"][0];
-					if (!isset($sentaddress[$address]["sent"])) {
-						$sentaddress[$address]["sent"]=$value;
-						$sentaddress[$address]["countsent"]=1;
-					} else {
-						$sentaddress[$address]["sent"]=bcadd($sentaddress[$address]["sent"],$value,8);
-						$sentaddress[$address]["countsent"]++;
+				if ($vintxid != 'ecececececececececececececececececececececececececececececececec') {
+					$rawtransaction=$emercoin->getrawtransaction($vintxid,1);
+					$value=$rawtransaction["vout"][$vout]["value"];
+					if (isset($rawtransaction["vout"][$vout]["scriptPubKey"]["addresses"][0])) {
+						$address=$rawtransaction["vout"][$vout]["scriptPubKey"]["addresses"][0];
+						if (!isset($sentaddress[$address]["sent"])) {
+							$sentaddress[$address]["sent"]=$value;
+							$sentaddress[$address]["countsent"]=1;
+						} else {
+							$sentaddress[$address]["sent"]=bcadd($sentaddress[$address]["sent"],$value,8);
+							$sentaddress[$address]["countsent"]++;
+						}
+						$sentaddress[$address]["time"]=$values["time"];
 					}
-					$sentaddress[$address]["time"]=$values["time"];
+				} else {
+					$value = 0;
+					$sentaddress["randpay"]["sent"]=0;
+					$sentaddress["randpay"]["countsent"]=1;
+					if (isset($rawtransaction["time"])) {
+						$sentaddress["randpay"]["time"]=$rawtransaction["time"];
+					}
 				}
 				if (isset($rawtransaction["time"])) {
 					$receivetime=$rawtransaction["time"];

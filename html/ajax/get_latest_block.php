@@ -41,7 +41,12 @@ foreach ($txs as $tx) {
 			if ($asm != "") {
 				if (strpos($asm, 'OP_DUP OP_HASH160') !== false) {
 				} else {
-					$confirmedBy = $vout['scriptPubKey']['addresses'][0];
+					if (isset($vout['scriptPubKey']['addresses'])) {
+						$confirmedBy = $vout['scriptPubKey']['addresses'][0];
+					} else {
+						$confirmedBy = "";
+					}
+					
 				}
 			}
 		}
