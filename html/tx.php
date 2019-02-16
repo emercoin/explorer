@@ -1,6 +1,4 @@
 <?php
-error_reporting(E_ALL);
-ini_set("display_errors", 1);
 if (isset($_SERVER['REQUEST_URI'])) {
 	$URI=explode('/',$_SERVER['REQUEST_URI']);
 	if ($URI[1]=="tx") {
@@ -26,9 +24,13 @@ if ($hash!="") {
 		foreach ($tx['vin'] as $vin) {
 			if (isset($vin['txid'])){
 				$numvin++;
-				$valuein+=getTX_vout_value($emercoin, $vin['txid'], $vin['vout']);
-				$timeDiff = bcsub($tx['time'],getTX_vout_time($emercoin, $vin['txid']),0);
-				$coindaysdestroyed = bcmul(bcdiv($timeDiff,86400,8),$valuein,6);
+				if ($vin['vout'] != 'ecececececececececececececececececececececececececececececececec') {
+					$valuein+=getTX_vout_value($emercoin, $vin['txid'], $vin['vout']);
+					$timeDiff = bcsub($tx['time'],getTX_vout_time($emercoin, $vin['txid']),0);
+					$coindaysdestroyed = bcmul(bcdiv($timeDiff,86400,8),$valuein,6);
+				} else {
+					$coindaysdestroyed = 0;
+				}
 			}
 		}
 	if ($coindaysdestroyed != 0) {
@@ -58,7 +60,6 @@ if ($hash!="") {
 	}
 
 	$block = $emercoin->getblock($blockhash);
-echo "TEST";
 	if (isset($block['height'])) {
 		$height = $block['height'];
 		if ($confirmations<3) {$labelcolor="danger";};
@@ -105,8 +106,13 @@ echo "TEST";
 					while($row_vin = $result_vin->fetch_assoc())
 					{
 						$vid=$row_vin['id'];
-						$out_tx_id=$row_vin['output_txid'];
-						$out_tx_id_short = substr($out_tx_id, 0, 4)."...".substr($out_tx_id, -4);
+						if ($row_vin['output_txid'] != 'ecececececececececececececececececececececececececececececececec') {
+							$out_tx_id=$row_vin['output_txid'];
+							$out_tx_id_short = substr($out_tx_id, 0, 4)."...".substr($out_tx_id, -4);
+						} else {
+							$out_tx_id='https://medium.com/@emer.tech/randpay-6a028f16c82a';
+							$out_tx_id_short = 'Randpay';
+						}
 						$coinbase=$row_vin['coinbase'];
 						if ($coinbase!="") {
 
@@ -122,7 +128,11 @@ echo "TEST";
 						$coindaysdestroyed=$row_vin['coindaysdestroyed'];
 						$avgcoindaysdestroyed=$row_vin['avgcoindaysdestroyed'];
 						if ($coinbase=="") {
-							echo '<tr><td><a href="/tx/'.$out_tx_id.'" class="btn btn-primary btn-xs" role="button">'.$out_tx_id_short.'</a></td><td>';
+							if ($out_tx_id_short != 'Randpay') {
+								echo '<tr><td><a href="/tx/'.$out_tx_id.'" class="btn btn-primary btn-xs" role="button">'.$out_tx_id_short.'</a></td><td>';
+							} else {
+								echo '<tr><td><a target="_blank" href="'.$out_tx_id.'" class="btn btn-primary btn-xs" role="button">'.$out_tx_id_short.'</a></td><td>';
+							}
 							if ($address!="N/A") {
 								echo '<a href="/cointrace/received/vin/'.$vid.'" target="_blank"><button type="button" class="btn btn-link" style="padding:0"><i class="fa fa-code-fork fa-rotate-270"></button></a></i>';
 							}
