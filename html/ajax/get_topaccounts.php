@@ -41,7 +41,7 @@ if (explode('.', $_SERVER['HTTP_HOST'])[0] == "testnet") {
 			return $numberOfUnits.' '.$text.(($numberOfUnits>1)?'s':'');
 		}
 	}
-	$block_total_coins=$_GET['total_coins'];
+	$block_total_coins=mysqli_real_escape_string($dbconn, $_GET['total_coins']);
 
 		$query = "SELECT account, SUM( balance ) AS balance, MAX( last_sent ) AS last_sent, MAX( last_received ) AS last_received
 				FROM `address`
