@@ -18,7 +18,7 @@ if (isset($_GET['address'])) {
 	}
 	$difficulty=$emercoin->getdifficulty();
 	$difficulty=$difficulty['proof-of-stake'];
-	$uriaddress=$_GET['address'];
+	$uriaddress=mysqli_real_escape_string($dbconn, $_GET['address']);
 
 	function TrimTrailingZeroes($nbr) {
 		return strpos($nbr,'.')!==false ? rtrim(rtrim($nbr,'0'),'.') : $nbr;
