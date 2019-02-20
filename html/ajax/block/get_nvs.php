@@ -132,7 +132,7 @@ if (isset($block_id) && $block_id!="") {
 			$days_added=0;
 			$initialtime=$history[0]['time'];
 			foreach ($history as $element) {
-				echo $element['value'].'<br>';
+				echo htmlspecialchars($element['value']).'<br>';
 				$owner=$element['address'];
 				$days_added+=$element['days_added'];
 			}
