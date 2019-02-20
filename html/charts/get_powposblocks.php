@@ -5,7 +5,7 @@ if (explode('.', $_SERVER['HTTP_HOST'])[0] == "testnet") {
 } else {
 	require_once __DIR__ . '/../../tools/include.php';
 }
-if ($_GET['filename']=="pow") {
+if (mysqli_real_escape_string($dbconn, $_GET['filename'])=="pow") {
 $query="SELECT (
 YEAR( FROM_UNIXTIME( `time` ) ) *3650 + MONTH( FROM_UNIXTIME( `time` ) ) *120 + DAY( FROM_UNIXTIME( `time` ) )
 ) AS `day` , FROM_UNIXTIME( time ) AS time, COUNT( flags ) AS blocks
@@ -16,7 +16,7 @@ GROUP BY (
 YEAR( FROM_UNIXTIME( `time` ) ) *3650 + MONTH( FROM_UNIXTIME( `time` ) ) *120 + DAY( FROM_UNIXTIME( `time` ) )
 )
 ORDER BY time";
-} else if ($_GET['filename']=="pos") {
+} else if (mysqli_real_escape_string($dbconn, $_GET['filename'])=="pos") {
 $query="SELECT (
 YEAR( FROM_UNIXTIME( `time` ) ) *3650 + MONTH( FROM_UNIXTIME( `time` ) ) *120 + DAY( FROM_UNIXTIME( `time` ) )
 ) AS `day` , FROM_UNIXTIME( time ) AS time, COUNT( flags ) AS blocks
@@ -30,7 +30,7 @@ ORDER BY time";
 }
 
 $result = $dbconn->query($query);
-echo $_GET["callback"];
+echo mysqli_real_escape_string($dbconn, $_GET["callback"]);
 echo "(";
 $days_array = array();
 while($row = $result->fetch_assoc())

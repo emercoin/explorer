@@ -5,7 +5,7 @@ if (explode('.', $_SERVER['HTTP_HOST'])[0] == "testnet") {
 } else {
 	require_once __DIR__ . '/../../tools/include.php';
 }
-$address=$_GET['address'];
+$address=mysqli_real_escape_string($dbconn, $_GET['address']);
 $balance=0;
 $query="SELECT tx.id, tx.txid, tx.time, vin.value AS sent, '' AS received
 				FROM transactions AS tx

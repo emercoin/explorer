@@ -15,7 +15,7 @@ YEAR( FROM_UNIXTIME( `time` ) ) *3650 + MONTH( FROM_UNIXTIME( `time` ) ) *120 + 
 )
 ORDER BY time";
 $result = $dbconn->query($query);
-echo $_GET["callback"];
+echo mysqli_real_escape_string($dbconn, $_GET["callback"]);
 echo "(";
 $days_array = array();
 while($row = $result->fetch_assoc())

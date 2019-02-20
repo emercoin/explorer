@@ -11,7 +11,7 @@ WHERE id > 1 AND flags LIKE '%proof-of-work%'
 GROUP BY CEIL((time)/3600)
 ORDER BY time";
 $result = $dbconn->query($query);
-echo $_GET["callback"];
+echo mysqli_real_escape_string($dbconn, $_GET["callback"]);
 echo "(";
 $days_array = array();
 while($row = $result->fetch_assoc())

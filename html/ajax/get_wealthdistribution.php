@@ -21,7 +21,7 @@ if (explode('.', $_SERVER['HTTP_HOST'])[0] == "testnet") {
 		return strpos($nbr,'.')!==false ? rtrim(rtrim($nbr,'0'),'.') : $nbr;
 	}
 
-	$block_total_coins=$_GET['total_coins'];
+	$block_total_coins=mysqli_real_escape_string($dbconn, $_GET['total_coins']);
 
 	$query="SELECT SUM( balance ) AS balance
 		FROM address
