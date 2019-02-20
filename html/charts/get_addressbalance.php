@@ -19,7 +19,7 @@ $query="SELECT tx.id, tx.txid, tx.time, vin.value AS sent, '' AS received
 				ORDER BY id";
 		$result = $dbconn->query($query);
 		$value=0;
-		echo $_GET["callback"];
+		echo mysqli_real_escape_string($dbconn, $_GET["callback"]);
 		echo "(";
 		$days_array = array();
 		while($row = $result->fetch_assoc())

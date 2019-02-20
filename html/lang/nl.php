@@ -68,7 +68,6 @@ function lang($phrase){
 		'SHOW_SHOW' => 'Toon',
 		'STATS_STATS' => 'Statistieken',
 		'TOP_TOP' => 'Top 100',
-		'WALLET_WALLET' => 'Portemonnee',
 		'N_HIDE' => 'Negeer leeg type',
 		'N_SHOW' => 'Toon alle typen',
 		'NAME_NAME' => 'Naam',

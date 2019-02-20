@@ -68,7 +68,6 @@ function lang($phrase){
                 'SHOW_SHOW' => '显示',
                 'STATS_STATS' => '统计',
                 'TOP_TOP' => '财富榜Top100',
-                'WALLET_WALLET' => '钱包',
                 'N_HIDE' => '无数据: 隐藏',
                 'N_SHOW' => '无数据: 显示',
                 'NAME_NAME' => '标签',

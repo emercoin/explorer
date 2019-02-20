@@ -68,7 +68,6 @@ function lang($phrase){
 		'SHOW_SHOW' => 'Show',
 		'STATS_STATS' => 'Stats',
 		'TOP_TOP' => 'Top100',
-		'WALLET_WALLET' => 'Wallet',
 		'N_HIDE' => 'Ignore empty Type',
 		'N_SHOW' => 'Include all Types',
 		'NAME_NAME' => 'Name',
@@ -237,10 +236,6 @@ function lang($phrase){
 		'UPDATE_PAIR' => 'Update Name->Value pair',
 		'DELETE_PAIR' => 'Delete Name->Value pair',
 		'REGISTER_NAME' => 'Register Name',
-		'THE_LATER' => 'The wallet client offers the possibility to send coins to a name.
-This name will be mapped to the registration address, which is always a new address.
-Coins which are send to this address, won\'t be credited to your account.
-You can change the registration address to one of your addresses or any other address later.',
 		'ADDITIONAL_DAYS' => 'Additional Days',
 		'UPDATE_NAME' => 'Update Name',
 		'MOVE_ADDRESS' => 'Move to address',

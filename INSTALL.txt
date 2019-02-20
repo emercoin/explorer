@@ -84,10 +84,6 @@ deamon=1
 
 # reboot // wait until the blockchain is in sync. You can check with 'emercoin-cli getinfo'
 
-//encrypt wallet (if you want to use the online wallet)
-# emercoin-cli encryptwallet 'wv59cqm89tu43q8rn923rzxqufh32p'
-# reboot
-
 # mkdir -p /var/www/emercoin-explorer
 //copy both folders 'html' and 'tools' to /var/www/emercoin-explorer
 

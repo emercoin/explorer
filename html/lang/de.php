@@ -68,7 +68,6 @@ function lang($phrase){
 		'SHOW_SHOW' => 'Anzeigen',
 		'STATS_STATS' => 'Statistik',
 		'TOP_TOP' => 'Top100',
-		'WALLET_WALLET' => 'Konto',
 		'N_HIDE' => 'Verberge Typ "leer"',
 		'N_SHOW' => 'Zeige alle Typen',
 		'NAME_NAME' => 'Name',
@@ -236,10 +235,6 @@ function lang($phrase){
 		'UPDATE_PAIR' => 'Aktualisiere Namen->Wert Paar',
 		'DELETE_PAIR' => 'Lösche Namen->Wert Paar',
 		'REGISTER_NAME' => 'Registriere Namen',
-		'THE_LATER' => 'Der Wallet-Client hat die Möglichkeit Münzen an einen Namen zu senden.
-Dieser Name wird mit einer neuen Adresse verknüpft.
-Münzen, welche an diese Adresse/Namen gesendet werden, werden dir nicht gutgeschrieben.
-Du kannst später dem Namen eine deiner Adresse zuweisen.',
 		'ADDITIONAL_DAYS' => 'Zusätzliche Tage',
 		'UPDATE_NAME' => 'Aktualisiere Namen',
 		'MOVE_ADDRESS' => 'Verknüpfe mit Adresse',
