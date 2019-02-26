@@ -117,7 +117,7 @@ deamon=1
         SSLCertificateFile /root/cert.pem // you can use the provided self-signed certificate for testing
         SSLCertificateKeyFile /root/key.pem // you can use the provided self-signed certificate for testing
         Header always set Strict-Transport-Security "max-age=31556926"
-        ServerName emercoin.mintr.org
+        ServerName explorer.emercoin.com
         DocumentRoot /var/www/emercoin-explorer/html
         <Directory /var/www/emercoin-explorer/html>
             AllowOverride all
