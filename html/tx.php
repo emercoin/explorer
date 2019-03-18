@@ -12,7 +12,6 @@ if (isset($_SERVER['REQUEST_URI'])) {
 function TrimTrailingZeroes($nbr) {
     return strpos($nbr,'.')!==false ? rtrim(rtrim($nbr,'0'),'.') : $nbr;
 }
-
 echo '<div class="container">';
 if ($hash!="") {
 	$tx=$emercoin->getrawtransaction($hash,1);
@@ -24,7 +23,7 @@ if ($hash!="") {
 		foreach ($tx['vin'] as $vin) {
 			if (isset($vin['txid'])){
 				$numvin++;
-				if ($vin['vout'] != 'ecececececececececececececececececececececececececececececececec') {
+				if ($vin['txid'] != 'ecececececececececececececececececececececececececececececececec') {
 					$valuein+=getTX_vout_value($emercoin, $vin['txid'], $vin['vout']);
 					$timeDiff = bcsub($tx['time'],getTX_vout_time($emercoin, $vin['txid']),0);
 					$coindaysdestroyed = bcmul(bcdiv($timeDiff,86400,8),$valuein,6);
