@@ -92,7 +92,7 @@ DROP TABLE IF EXISTS `nvs`;
 CREATE TABLE `nvs` (
   `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
   `name` varchar(1000) DEFAULT NULL,
-  `value` varchar(25000) DEFAULT NULL,
+  `value` text DEFAULT NULL,
   `type` varchar(50) DEFAULT NULL,
   `isbase64` char(1) DEFAULT NULL,
   `registered_at` int(10) unsigned DEFAULT NULL,
