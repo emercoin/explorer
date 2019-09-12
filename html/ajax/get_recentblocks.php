@@ -50,9 +50,11 @@ $block_height=$emc_info['blocks'];
 		$block_time = $block['time'];
 		$flags=$block['flags'];
 		if ($flags == "proof-of-stake") {
-			$txSkipValue = 2;
+			//$txSkipValue = 2; //filter PoS transactions
+			$txSkipValue = 0;
 		} else {
-			$txSkipValue = 1;
+			//$txSkipValue = 1; //filter coinbase transactions
+			$txSkipValue = 0;
 		}
 		$txs=$block['tx'];
 		$block_numtx = 0;
