@@ -148,21 +148,23 @@ if (isset($block_id) && $block_id!="") {
 			echo '<br><b>DPO</b><br>';
 			$nameArr=explode(':',$nvs_name);
 			$brand=$nameArr[1];
-			$sn=$nameArr[2];
-
+			$sn="";
+			if ($nameArr[2]) {
+				$sn=$nameArr[2];
+			}
 			if ($brand!='') {
 				$brand_param = htmlspecialchars($brand);
 				try {
 					error_reporting(0);
 					$brand_info=$emercoin->name_show('dpo:'.$brand);
-					echo "<p><b>Brand info: $brand_param</b><br/>";
+					echo "<p><b>Brand info:$brand_parama</b><br/>";
 					$brandtok=Tokenize($brand_info);
 					PrintTok($brandtok);
 				} catch (Exception $e) {
 					echo '<p><b>Brand "'.$brand_param.'" not found</b><br/><p>';
 				}
 			}
-			if ($sn!='') {
+			if ($sn!="") {
 				$sn = preg_replace('/[^0-9A-Za-z_-]/', '', $sn);
 				echo "<p><b>Serial: $sn</b></p>";
 				$filt_key = 'dpo:'.$brand.':'.$sn.':';
