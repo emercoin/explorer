@@ -1,5 +1,11 @@
 <?php
-require_once __DIR__ . '/../tools/include.php';
+	error_reporting(E_ALL);
+	ini_set("display_errors", 1);
+if (explode('.', $_SERVER['HTTP_HOST'])[0] == "testnet") {
+	require_once __DIR__ . '/../tools/tinclude.php';
+} else {
+	require_once __DIR__ . '/../tools/include.php';
+}
 $query="SELECT MAX(height) AS height, MAX(time) AS time FROM blocks";
 $result = $dbconn->query($query);
 while($row = $result->fetch_assoc())
@@ -30,37 +36,14 @@ if (isset($_SERVER['REQUEST_URI'])) {
 		}
 	}
 }
-  function isImage($url)
-  {
-     $params = array('http' => array(
-                  'method' => 'HEAD'
-               ));
-     $ctx = stream_context_create($params);
-     $fp = @fopen($url, 'rb', false, $ctx);
-     if (!$fp)
-        return false;  // Problem with url
-
-    $meta = stream_get_meta_data($fp);
-    if ($meta === false)
-    {
-        fclose($fp);
-        return false;  // Problem reading data from url
-    }
-
-    $wrapper_data = $meta["wrapper_data"];
-    if(is_array($wrapper_data)){
-      foreach(array_keys($wrapper_data) as $hh){
-          if (substr($wrapper_data[$hh], 0, 19) == "Content-Type: image") // strlen("Content-Type: image") == 19
-          {
-            fclose($fp);
-            return true;
-          }
-      }
-    }
-
-    fclose($fp);
-    return false;
-  }
+function isImage($url)
+{
+    $imgExts = array("gif", "jpg", "jpeg", "png", "tiff", "tif", "bmp");
+	$urlExt = pathinfo($url, PATHINFO_EXTENSION);
+	if (in_array($urlExt, $imgExts)) {
+		return true;
+	}
+} 
 function makeClickableLinks($s) {
 	//$remove = array("\n", "\r\n", "\r");
 	//$s = str_replace($remove, ' <br> ', $s);

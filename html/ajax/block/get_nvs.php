@@ -17,38 +17,16 @@ if (!empty($_COOKIE["lang"])) {
 function TrimTrailingZeroes($nbr) {
     return strpos($nbr,'.')!==false ? rtrim(rtrim($nbr,'0'),'.') : $nbr;
 }
-
+ 
 function isImage($url)
-  {
-     $params = array('http' => array(
-                  'method' => 'HEAD'
-               ));
-     $ctx = stream_context_create($params);
-     $fp = @fopen($url, 'rb', false, $ctx);
-     if (!$fp)
-        return false;  // Problem with url
+{
+    $imgExts = array("gif", "jpg", "jpeg", "png", "tiff", "tif", "bmp");
+	$urlExt = pathinfo($url, PATHINFO_EXTENSION);
+	if (in_array($urlExt, $imgExts)) {
+		return true;
+	}
+} 
 
-    $meta = stream_get_meta_data($fp);
-    if ($meta === false)
-    {
-        fclose($fp);
-        return false;  // Problem reading data from url
-    }
-
-    $wrapper_data = $meta["wrapper_data"];
-    if(is_array($wrapper_data)){
-      foreach(array_keys($wrapper_data) as $hh){
-          if (substr($wrapper_data[$hh], 0, 19) == "Content-Type: image") // strlen("Content-Type: image") == 19
-          {
-            fclose($fp);
-            return true;
-          }
-      }
-    }
-
-    fclose($fp);
-    return false;
-  }
 function makeClickableLinks($s) {
 	//$remove = array("\n", "\r\n", "\r");
 	//$s = str_replace($remove, ' <br> ', $s);
