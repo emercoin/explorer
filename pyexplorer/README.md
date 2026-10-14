@@ -207,6 +207,33 @@ docker compose --env-file .env start indexer
 `{"text": …}`, а если это не UTF-8, то как `{"text": null, "base64": …}`. Все
 SQL-запросы параметризованы, входные хэши и адреса проверяются по формату.
 
+### Старое API (`/api/...`)
+
+Для внешних потребителей PHP-версии сохранены маршруты из её `/api/help`:
+`/api/block/{hash|height}/<x>[/less|/full]`, `/api/block/latest[/less|/full]`,
+`/api/tx/hash/<txid>[/less|/full]`, `/api/address/balance/<addr>[/less|/full]`,
+`/api/address/isvalid/<addr>`, `/api/stats/block_height`,
+`/api/stats/coin_supply[/txt]`. Код в `src/emcexplorer/api/legacy.py`.
+
+Формат ответов как у PHP-версии:
+* все значения строками;
+* суммы без хвостовых нулей (`"12.5"`);
+* ошибки — `{"error": ...}` с кодом 200;
+* JSON с отступами.
+
+`coin_supply` берётся из `supply` последнего блока, а не из `getinfo`: на нём
+нода падает.
+
+Отличия от PHP-версии:
+* Поля, которых в новом индексе нет, равны `null`: coin-days destroyed,
+  счётчики адресов по блокам, `entropybit`, `modifierchecksum`, `asm`,
+  `reqsigs`, скрипты входов.
+* `/api/address/balance/<addr>/full` отдаёт 1000 последних транзакций, а не все.
+* `/api/address/isvalid` проверяет адрес локально (base58check с префиксами
+  mainnet `E`/`e` и bech32 `em1...`), без обращения к ноде.
+* Маршруты графиков (`/api/stats/known_addresses`, `addresses_in_use`,
+  `empty_addresses`, `chain_size`) и `/api/address/ismine` не поддерживаются.
+
 ## Тесты
 
 ```bash
@@ -225,7 +252,7 @@ randpay, `name_new`/`name_update`) и проверяют балансы, эми�
   (эмиссия, число транзакций, имена), см. [docs/vps-run.md](docs/vps-run.md).
   Первичная синхронизация на одном ядре занимает около 1 ч 46 мин, поэтому запись
   пачками пока не нужна.
-* **Совместимость со старым API.** Нужно решить, какие маршруты `/api/...` из `html/api.php`
-  нужны внешним потребителям, и сделать для них адаптер.
+* **Графики старого API** (`/api/stats/known_addresses` и т.п.). Для них нужны
+  дневные агрегаты, а их пока нет (см. последний пункт).
 * **Мультиадресные выходы.** Пока сохраняется только первый адрес выхода (как в PHP-версии).
 * Мемпул, графики и статистика (агрегаты по дням), кэширование.
