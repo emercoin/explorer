@@ -8,11 +8,14 @@
 #     never :latest.
 #
 #   1. tests (explorer-ci.yml)
-#   2. build and push emercoin/explorer:X.Y.Z and :latest (or :develop) to Docker Hub
+#   2. build and push ghcr.io/emercoin/explorer:X.Y.Z and :latest (or :develop)
 #   3. over SSH run pyexplorer/deploy/deploy-service.sh vX.Y.Z on the server
 #
-# Repository secrets:
-#   DOCKERHUB_USERNAME, DOCKERHUB_TOKEN   write access to emercoin/explorer on Docker Hub
+# The image goes to GitHub Container Registry with the workflow's own token, so
+# it needs no registry secrets. Make the package public once (Packages ->
+# explorer -> Package settings -> Change visibility), or the server has to
+# `docker login ghcr.io` before it can pull.
+#
 # Environment "production" secrets (Settings -> Environments; add reviewers there
 # if a human should approve each rollout):
 #   DEPLOY_HOST          server address, e.g. explorer3.emercoin.com
@@ -35,7 +38,7 @@ concurrency:
   cancel-in-progress: false
 
 env:
-  IMAGE: emercoin/explorer
+  IMAGE: ghcr.io/emercoin/explorer
 
 jobs:
   test:
@@ -46,6 +49,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write   # push the tag when building a branch
+      packages: write   # push the image to ghcr.io
     outputs:
       version: ${{ steps.ver.outputs.version }}
     steps:
@@ -75,14 +79,16 @@ jobs:
 
       - uses: docker/login-action@v3
         with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
       - uses: docker/build-push-action@v6
         with:
           context: ./pyexplorer
           platforms: linux/amd64
           push: true
+          labels: org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
           tags: |
             ${{ env.IMAGE }}:${{ steps.ver.outputs.version }}
             ${{ env.IMAGE }}:${{ steps.ver.outputs.channel }}

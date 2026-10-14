@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Release rollout, invoked by CI over SSH after it has pushed emercoin/explorer:<tag>
+# Release rollout, invoked by CI over SSH after it has pushed ghcr.io/emercoin/explorer:<tag>
 # (see .github/workflows/explorer-release.yml):
 #
 #   bash /opt/explorer/pyexplorer/deploy/deploy-service.sh v0.2.0
