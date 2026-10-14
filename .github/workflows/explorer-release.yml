@@ -1,5 +1,8 @@
-# Release of the Python explorer: push a tag vX.Y.Z (must equal the version in
-# pyexplorer/pyproject.toml).
+# Release of the Python explorer, started either way:
+#   * push a tag vX.Y.Z (must equal the version in pyexplorer/pyproject.toml);
+#   * run the workflow by hand (Actions -> explorer release -> Run workflow, or
+#     the API) on a branch: once the image is pushed it tags the branch head
+#     with the version from pyproject.toml; fails early if that tag exists.
 #
 #   1. tests (explorer-ci.yml)
 #   2. build and push emercoin/explorer:X.Y.Z and :latest to Docker Hub
@@ -18,6 +21,7 @@ name: explorer release
 on:
   push:
     tags: ["v*"]
+  workflow_dispatch:
 
 env:
   IMAGE: emercoin/explorer
@@ -29,6 +33,8 @@ jobs:
   publish:
     needs: test
     runs-on: ubuntu-latest
+    permissions:
+      contents: write   # push the tag on a manual run
     outputs:
       version: ${{ steps.ver.outputs.version }}
     steps:
@@ -37,9 +43,13 @@ jobs:
       - name: Check the tag matches pyproject.toml
         id: ver
         run: |
-          tag="${GITHUB_REF_NAME#v}"
           ver=$(grep -oP '^version = "\K[^"]+' pyexplorer/pyproject.toml)
-          if [ "$tag" != "$ver" ]; then
+          if [ "$GITHUB_EVENT_NAME" = workflow_dispatch ]; then
+            if git ls-remote --exit-code --tags origin "refs/tags/v$ver" >/dev/null; then
+              echo "::error::tag v$ver already exists; bump the version in pyexplorer/pyproject.toml"
+              exit 1
+            fi
+          elif [ "${GITHUB_REF_NAME#v}" != "$ver" ]; then
             echo "::error::tag $GITHUB_REF_NAME does not match pyproject version $ver"
             exit 1
           fi
@@ -61,6 +71,14 @@ jobs:
             ${{ env.IMAGE }}:${{ steps.ver.outputs.version }}
             ${{ env.IMAGE }}:latest
 
+      # deploy-service.sh checks out this tag on the server. A tag pushed with
+      # GITHUB_TOKEN does not start this workflow a second time.
+      - name: Tag the release
+        if: github.event_name == 'workflow_dispatch'
+        run: |
+          git tag "v${{ steps.ver.outputs.version }}" "$GITHUB_SHA"
+          git push origin "refs/tags/v${{ steps.ver.outputs.version }}"
+
   deploy:
     needs: publish
     runs-on: ubuntu-latest
@@ -75,10 +93,11 @@ jobs:
           KNOWN_HOSTS: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
           DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
           DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+          RELEASE_TAG: v${{ needs.publish.outputs.version }}
         run: |
           install -m 700 -d ~/.ssh
           printf '%s\n' "$SSH_KEY" > ~/.ssh/id_ed25519
           chmod 600 ~/.ssh/id_ed25519
           printf '%s\n' "$KNOWN_HOSTS" > ~/.ssh/known_hosts
           ssh -o BatchMode=yes "$DEPLOY_USER@$DEPLOY_HOST" \
-            "bash /opt/explorer/pyexplorer/deploy/deploy-service.sh $GITHUB_REF_NAME"
+            "bash /opt/explorer/pyexplorer/deploy/deploy-service.sh $RELEASE_TAG"
