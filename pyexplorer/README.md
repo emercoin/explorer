@@ -100,7 +100,7 @@ uv run emcexplorer api --host 0.0.0.0 --port 8000   # сайт: /, докуме�
 | `caddy` | TLS (Let's Encrypt) для `EXPLORER_DOMAIN`, проксирует на `api` | 80, 443 |
 
 RPC ноды и PostgreSQL доступны только во внутренней сети compose (`172.28.0.0/24`).
-Образ `emercoin/explorer` собирается из `Dockerfile` двумя стадиями: uv ставит
+Образ `ghcr.io/emercoin/explorer` собирается из `Dockerfile` двумя стадиями: uv ставит
 зависимости строго по `uv.lock`, в итоговый образ попадает только `.venv`.
 
 ### Первый запуск на сервере
@@ -127,7 +127,8 @@ SIGSEGV. Для проверки ноды есть `getblockchaininfo`.
 
 Тег `vX.Y.Z` (версия должна совпадать с `pyproject.toml`) запускает
 `.github/workflows/explorer-release.yml`: тесты, затем публикация
-`emercoin/explorer:X.Y.Z` и `:latest` в Docker Hub, затем выкатка по SSH.
+`ghcr.io/emercoin/explorer:X.Y.Z` и `:latest` в GitHub Container Registry
+(встроенным токеном workflow, секреты реестра не нужны), затем выкатка по SSH.
 На сервере выполняется `deploy/deploy-service.sh vX.Y.Z`: он переключает
 checkout на тот же тег (чтобы compose и Caddyfile совпадали с образом),
 записывает версию в `.env`, применяет схему и пересоздаёт `indexer` и `api`.
