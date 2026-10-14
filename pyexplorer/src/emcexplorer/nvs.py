@@ -173,7 +173,7 @@ def decode_name_script(script: bytes) -> NameOp | None:
 def namespace_of(name: bytes) -> str | None:
     """'dns:example.emc' -> 'dns'. Names without a colon have no namespace."""
     head, sep, _ = name.partition(b":")
-    if not sep:
+    if not sep or b"\x00" in head:
         return None
     return head.decode("utf-8", "replace")
 
@@ -183,3 +183,14 @@ def as_text(data: bytes) -> str | None:
         return data.decode("utf-8")
     except UnicodeDecodeError:
         return None
+
+
+def as_db_text(data: bytes) -> str | None:
+    """Like as_text, but None for NUL bytes too: PostgreSQL TEXT cannot hold them.
+
+    Mainnet has such names (b"dns:test\\x00", b"\\x00"); they are valid UTF-8 and
+    name_show answers for them, they just cannot go into names.name_text.
+    """
+    if b"\x00" in data:
+        return None
+    return as_text(data)

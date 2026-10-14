@@ -133,13 +133,13 @@ class ChainBuilder:
         return ChainBuilder(tag, [dict(b) for b in self.blocks[:keep]])
 
 
-def _dumps(obj: Any) -> str:
+def _dumps(obj: Any, ensure_ascii: bool = True) -> str:
     def enc(o: Any) -> str:
         if isinstance(o, Decimal):
             return f"@@{o}@@"
         raise TypeError(o)
 
-    return re.sub(r'"@@(-?[0-9.]+)@@"', r"\1", json.dumps(obj, default=enc))
+    return re.sub(r'"@@(-?[0-9.]+)@@"', r"\1", json.dumps(obj, default=enc, ensure_ascii=ensure_ascii))
 
 
 class FakeNode:
@@ -225,11 +225,22 @@ class FakeNode:
             return {"result": None, "error": {"code": e.code, "message": e.message}, "id": req["id"]}
 
     def _handle(self, request: httpx.Request) -> httpx.Response:
-        body = json.loads(request.content)
+        # Like emercoind 0.8.5, keep only the low byte of a \uXXXX escape
+        # ("\u263c" -> "<"); raw UTF-8 is parsed fine.
+        body = json.loads(
+            _NON_ASCII_ESCAPE.sub(lambda m: b"\\u00" + m[1][-2:], request.content)
+        )
         if isinstance(body, list):
-            return httpx.Response(200, text=_dumps([self._one(r) for r in body]))
+            # ...and its batch replies escape each byte >= 0x80 on its own:
+            # "ü" (c3 bc) goes out as "\u00C3\u00BC".
+            raw = _dumps([self._one(r) for r in body], ensure_ascii=False).encode()
+            raw = re.sub(rb"[\x80-\xff]", lambda m: b"\\u00%02X" % m[0][0], raw)
+            return httpx.Response(200, content=raw)
         resp = self._one(body)
         return httpx.Response(500 if resp["error"] else 200, text=_dumps(resp))
+
+
+_NON_ASCII_ESCAPE = re.compile(rb"\\u(?!00[0-7])([0-9a-fA-F]{4})")
 
 
 class _RpcFail(Exception):

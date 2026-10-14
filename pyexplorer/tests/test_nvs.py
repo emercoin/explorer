@@ -6,6 +6,7 @@ from emcexplorer.nvs import (
     OP_NAME_NEW,
     OP_NAME_UPDATE,
     _script_num,
+    as_db_text,
     decode_name_script,
     namespace_of,
 )
@@ -62,6 +63,14 @@ def test_script_num_roundtrip(n):
 def test_namespace():
     assert namespace_of(b"dns:example.emc") == "dns"
     assert namespace_of(b"plainname") is None
+    assert namespace_of(b"dns\x00:x") is None
+
+
+def test_as_db_text():
+    assert as_db_text(b"dns:example.emc") == "dns:example.emc"
+    assert as_db_text(b"\xff") is None
+    # valid UTF-8, but PostgreSQL TEXT rejects NUL (seen on mainnet: b"dns:test\x00")
+    assert as_db_text(b"dns:test\x00") is None
 
 
 def test_amounts():

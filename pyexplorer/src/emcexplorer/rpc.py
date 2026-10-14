@@ -63,8 +63,12 @@ class RpcClient:
         return self._next_id
 
     async def _post(self, payload: Any) -> Any:
+        # Raw UTF-8, not \uXXXX escapes: emercoind 0.8.5 mis-parses escaped non-ASCII
+        # characters, so name_show "dns:B\u00fccher.emc" answers "no such name".
         resp = await self._client.post(
-            "", content=json.dumps(payload), headers={"content-type": "application/json"}
+            "",
+            content=json.dumps(payload, ensure_ascii=False).encode(),
+            headers={"content-type": "application/json"},
         )
         # bitcoind-style nodes answer RPC errors with HTTP 500 and a JSON body.
         if resp.status_code not in (200, 500):

@@ -10,7 +10,7 @@ from dataclasses import dataclass
 
 import asyncpg
 
-from ..nvs import as_text, namespace_of
+from ..nvs import as_db_text, as_text, namespace_of
 from ..rpc import RpcClient, RpcError
 from .parse import Block
 
@@ -290,6 +290,23 @@ async def rollback_to(conn: asyncpg.Connection, height: int) -> None:
             )
 
 
+def _same_name(asked: bytes, returned: str | None) -> bool:
+    """Whether name_show answered for the name we asked about.
+
+    In batch replies emercoind 0.8.5 escapes every byte >= 0x80 on its own
+    ("\\u00C3\\u00BC" for "ü"), so the name comes back as Latin-1 mojibake.
+    """
+    if returned is None:
+        return False
+    for encoding in ("utf-8", "latin-1"):
+        try:
+            if returned.encode(encoding) == asked:
+                return True
+        except UnicodeEncodeError:
+            pass
+    return False
+
+
 async def refresh_dirty_names(
     conn: asyncpg.Connection, rpc: RpcClient, batch_size: int = 200
 ) -> int:
@@ -316,6 +333,11 @@ async def refresh_dirty_names(
                         raise res
                     await conn.execute("DELETE FROM names WHERE name = $1", name)
                     continue
+                if not _same_name(name, res.get("name")):
+                    # The node answered for another name (emercoind mangles escaped
+                    # non-ASCII); never store that state under this name.
+                    log.error("name_show %r returned %r; skipped", name, res.get("name"))
+                    continue
                 await conn.execute(
                     """
                     INSERT INTO names (name, name_text, namespace, value, address, txid, vout,
@@ -327,7 +349,7 @@ async def refresh_dirty_names(
                         expires_at = EXCLUDED.expires_at, deleted = EXCLUDED.deleted,
                         time = EXCLUDED.time
                     """,
-                    name, name.decode(), namespace_of(name),
+                    name, as_db_text(name), namespace_of(name),
                     base64.b64decode(res.get("value", "")),
                     res.get("address") or None, bytes.fromhex(res["txid"]), res["vout"],
                     res["expires_at"], bool(res.get("deleted", False)), res.get("time"),

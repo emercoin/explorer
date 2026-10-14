@@ -202,6 +202,36 @@ async def test_reorg_depth_limit(pool):
             await Indexer(pool, rpc, shallow).sync_once()
 
 
+async def test_unusual_names(pool):
+    """Names seen on mainnet that once broke the names table.
+
+    b"dns:test\\x00": valid UTF-8, but PostgreSQL TEXT cannot hold NUL, so it is
+    stored without name_text. "dns:☼.coin": the node only finds it when the
+    request carries raw UTF-8 (see RpcClient._post); an escaped "\\u263c" is read
+    as "<" and returns the state of "dns:<.coin" instead.
+    """
+    c = ChainBuilder("n")
+    c.add_block([coinbase(A_, "100")], mint="100")
+    nul, sun, lt = b"dns:test\x00", "dns:☼.coin".encode(), b"dns:<.coin"
+    t = TxSpec(
+        vin=[(c.blocks[0]["tx"][0]["txid"], 0)],
+        vout=[Out("0.01", C_, script=name_script(1, nul, b"v", 30, C_), type="name_pubkeyhash"),
+              Out("0.01", C_, script=name_script(1, sun, b"sun", 30, C_), type="name_pubkeyhash"),
+              Out("0.01", D_, script=name_script(1, lt, b"lt", 30, D_), type="name_pubkeyhash"),
+              Out("99.96", A_)],
+        version=NAME_TX,
+    )
+    c.add_block([coinbase(M_, "10"), t], mint="10")
+    await sync(pool, FakeNode(c))
+    async with pool.acquire() as conn:
+        row = await conn.fetchrow("SELECT * FROM names WHERE name = $1", nul)
+        assert row["name_text"] is None and row["namespace"] == "dns" and row["value"] == b"v"
+        row = await conn.fetchrow("SELECT * FROM names WHERE name = $1", sun)
+        assert row["name_text"] == "dns:☼.coin" and row["value"] == b"sun"
+        assert row["address"] == C_
+        assert await conn.fetchval("SELECT count(*) FROM names_dirty") == 0
+
+
 @pytest.fixture
 async def api(pool):
     await sync(pool, FakeNode(main_chain()))
