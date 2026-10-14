@@ -56,6 +56,8 @@ def main() -> None:
         level=os.environ.get("LOG_LEVEL", "INFO"),
         format="%(asctime)s %(levelname)s %(name)s: %(message)s",
     )
+    # httpx logs every RPC request at INFO; keep only its warnings.
+    logging.getLogger("httpx").setLevel(logging.WARNING)
 
     if args.command == "initdb":
         asyncio.run(_initdb(_database_url()))

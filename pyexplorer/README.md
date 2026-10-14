@@ -61,22 +61,63 @@ emercoind (RPC) ──► indexer ──► PostgreSQL ◄── api (FastAPI) �
     Затронутые имена копятся в `names_dirty` и перечитываются пачками, когда
     индекс догнал ноду.
 
-## Запуск
+## Запуск для разработки
 
-Нужны Python 3.11+, PostgreSQL 13+ и `emercoind` с `server=1` и `txindex=1`
-(`txindex` нужен, потому что `name_show` читает транзакции имён).
+Нужны [uv](https://docs.astral.sh/uv/), PostgreSQL 13+ и `emercoind` с `server=1`.
+`txindex` (нужен `name_show`) в Emercoin включён по умолчанию.
 
 ```bash
 cd pyexplorer
-python -m venv .venv && . .venv/bin/activate
-pip install -e '.[dev]'
-cp .env.example .env   # заполнить, затем экспортировать переменные
+uv sync                 # .venv с зависимостями из uv.lock (вместе с dev-группой)
+cp .env.example .env    # заполнить, затем экспортировать переменные
 export $(grep -v '^#' .env | xargs)
 
-emcexplorer initdb     # создаёт таблицы (повторный запуск безопасен)
-emcexplorer index      # индексатор: долгоживущий процесс
-emcexplorer api --host 0.0.0.0 --port 8000   # документация API: /docs
+uv run emcexplorer initdb     # создаёт таблицы (повторный запуск безопасен)
+uv run emcexplorer index      # индексатор: долгоживущий процесс
+uv run emcexplorer api --host 0.0.0.0 --port 8000   # документация API: /docs
 ```
+
+Зависимости меняются через `uv add` / `uv remove`; `uv.lock` коммитится вместе с ними.
+
+## Развёртывание
+
+Всё на одном хосте, `deploy/docker-compose.yaml`:
+
+| Сервис | Что делает | Наружу |
+|---|---|---|
+| `emc` | нода `emercoin/core:0.8.5` (из `emercoin/emer-ai-tools`), кошелёк отключён | P2P 6661 |
+| `postgres` | база индекса | нет |
+| `migrate` | разовый `emcexplorer initdb` перед стартом остальных | нет |
+| `indexer` | `emcexplorer index`, один экземпляр | нет |
+| `api` | `emcexplorer api` | нет |
+| `caddy` | TLS (Let's Encrypt) для `EXPLORER_DOMAIN`, проксирует на `api` | 80, 443 |
+
+RPC ноды и PostgreSQL доступны только во внутренней сети compose (`172.28.0.0/24`).
+Образ `emercoin/explorer` собирается из `Dockerfile` двумя стадиями: uv ставит
+зависимости строго по `uv.lock`, в итоговый образ попадает только `.venv`.
+
+### Первый запуск на сервере
+
+```bash
+git clone https://github.com/emercoin/explorer /opt/explorer
+cd /opt/explorer/pyexplorer/deploy
+docker volume create emer_explorer_chain   # внешние тома: `down -v` их не удалит
+docker volume create emer_explorer_pg
+cp emercoin.conf.example emercoin.conf     # rpcpassword
+cp .env.example .env && chmod 600 .env     # тот же пароль в EMC_RPC_PASSWORD, POSTGRES_PASSWORD, домен
+docker compose --env-file .env up -d --build    # до первого релиза образ собирается на месте
+```
+
+### Релизы
+
+Тег `vX.Y.Z` (версия должна совпадать с `pyproject.toml`) запускает
+`.github/workflows/explorer-release.yml`: тесты, затем публикация
+`emercoin/explorer:X.Y.Z` и `:latest` в Docker Hub, затем выкатка по SSH.
+На сервере выполняется `deploy/deploy-service.sh vX.Y.Z`: он переключает
+checkout на тот же тег (чтобы compose и Caddyfile совпадали с образом),
+записывает версию в `.env`, применяет схему и пересоздаёт `indexer` и `api`.
+Секреты перечислены в шапке workflow. Ключ CI на сервере стоит ограничить
+одной командой через `command=` в `authorized_keys`; пример есть в скрипте.
 
 ## API (`/api/v1`)
 
@@ -102,8 +143,8 @@ SQL-запросы параметризованы, входные хэши и а
 ## Тесты
 
 ```bash
-pytest tests/test_nvs.py                     # без БД
-TEST_DATABASE_URL=postgresql://…/emc_test pytest   # ВНИМАНИЕ: схема public в этой БД пересоздаётся
+uv run pytest tests/test_nvs.py                          # без БД
+TEST_DATABASE_URL=postgresql://…/emc_test uv run pytest  # ВНИМАНИЕ: схема public в этой БД пересоздаётся
 ```
 
 `tests/fakenode.py` имитирует JSON-RPC ноды через `httpx.MockTransport`.

@@ -1,0 +1,84 @@
+# Release of the Python explorer: push a tag vX.Y.Z (must equal the version in
+# pyexplorer/pyproject.toml).
+#
+#   1. tests (explorer-ci.yml)
+#   2. build and push emercoin/explorer:X.Y.Z and :latest to Docker Hub
+#   3. over SSH run pyexplorer/deploy/deploy-service.sh vX.Y.Z on the server
+#
+# Repository secrets:
+#   DOCKERHUB_USERNAME, DOCKERHUB_TOKEN   write access to emercoin/explorer on Docker Hub
+# Environment "production" secrets (Settings -> Environments; add reviewers there
+# if a human should approve each rollout):
+#   DEPLOY_HOST          server address, e.g. explorer3.emercoin.com
+#   DEPLOY_USER          SSH user on the server (member of the docker group)
+#   DEPLOY_SSH_KEY       private key of a dedicated CI key pair
+#   DEPLOY_KNOWN_HOSTS   output of `ssh-keyscan -t ed25519 <host>` (pins the host key)
+name: explorer release
+
+on:
+  push:
+    tags: ["v*"]
+
+env:
+  IMAGE: emercoin/explorer
+
+jobs:
+  test:
+    uses: ./.github/workflows/explorer-ci.yml
+
+  publish:
+    needs: test
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.ver.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check the tag matches pyproject.toml
+        id: ver
+        run: |
+          tag="${GITHUB_REF_NAME#v}"
+          ver=$(grep -oP '^version = "\K[^"]+' pyexplorer/pyproject.toml)
+          if [ "$tag" != "$ver" ]; then
+            echo "::error::tag $GITHUB_REF_NAME does not match pyproject version $ver"
+            exit 1
+          fi
+          echo "version=$ver" >> "$GITHUB_OUTPUT"
+
+      - uses: docker/setup-buildx-action@v3
+
+      - uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - uses: docker/build-push-action@v6
+        with:
+          context: ./pyexplorer
+          platforms: linux/amd64
+          push: true
+          tags: |
+            ${{ env.IMAGE }}:${{ steps.ver.outputs.version }}
+            ${{ env.IMAGE }}:latest
+
+  deploy:
+    needs: publish
+    runs-on: ubuntu-latest
+    environment: production
+    concurrency:
+      group: explorer-deploy
+      cancel-in-progress: false
+    steps:
+      - name: Roll out on the server
+        env:
+          SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          KNOWN_HOSTS: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+          DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+        run: |
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "$SSH_KEY" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          printf '%s\n' "$KNOWN_HOSTS" > ~/.ssh/known_hosts
+          ssh -o BatchMode=yes "$DEPLOY_USER@$DEPLOY_HOST" \
+            "bash /opt/explorer/pyexplorer/deploy/deploy-service.sh $GITHUB_REF_NAME"
