@@ -4,3 +4,4 @@ __pycache__/
 .pytest_cache/
 .env
 deploy/emercoin.conf
+deploy/docker-compose.override.yaml
