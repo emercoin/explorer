@@ -127,6 +127,39 @@ checkout на тот же тег (чтобы compose и Caddyfile совпада
 Секреты перечислены в шапке workflow. Ключ CI на сервере стоит ограничить
 одной командой через `command=` в `authorized_keys`; пример есть в скрипте.
 
+### Мониторинг и бэкап
+
+В `deploy/ops/` лежат два скрипта и их systemd-таймеры:
+
+* `healthcheck.sh` запускается каждые 5 минут. Проверяет, что API отвечает,
+  индекс отстаёт от ноды не больше чем на `MAX_LAG` блоков, индексатор недавно
+  опрашивал ноду, контейнеры не перезапускаются и на диске есть место.
+  Сообщения пишутся в journal (`journalctl -t explorer-health`) и в Telegram,
+  если заданы `TELEGRAM_BOT_TOKEN` и `TELEGRAM_CHAT_ID`. Скрипт сообщает
+  только о смене состояния.
+* `backup.sh` запускается ночью. Делает `pg_dump -Fc` в `/var/backups/explorer`,
+  хранит последние `BACKUP_KEEP` дампов и может выгрузить новый командой из
+  `BACKUP_UPLOAD`.
+
+Настройки хранятся в `/etc/explorer-ops.env`. Установка:
+
+```bash
+cp deploy/ops/explorer-*.{service,timer} /etc/systemd/system/
+systemctl daemon-reload
+systemctl enable --now explorer-healthcheck.timer explorer-backup.timer
+```
+
+Восстановление из дампа (индексатор на это время остановить):
+
+```bash
+docker compose --env-file .env stop indexer
+docker compose --env-file .env exec -T postgres \
+  pg_restore -U explorer -d explorer --clean --if-exists --no-owner < /var/backups/explorer/<dump>
+docker compose --env-file .env start indexer
+```
+
+После этого индексатор сверит хэш вершины с нодой и доберёт новые блоки сам.
+
 ## API (`/api/v1`)
 
 | Маршрут | Что возвращает |

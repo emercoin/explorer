@@ -38,8 +38,9 @@ services:
       - random_page_cost=1.1
       - -c
       - maintenance_work_mem=128MB
+      # 2GB during the initial sync; steady state writes one block a minute.
       - -c
-      - max_wal_size=2GB
+      - max_wal_size=512MB
       - -c
       - checkpoint_timeout=15min
       - -c

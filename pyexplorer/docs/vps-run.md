@@ -147,6 +147,13 @@ Load average 2.1 (максимум 2.9) на одном ядре. Swap заня�
 | `/names?prefix=dns:` | 2 (было 68, см. п. 4 выше) |
 | `/names/{name}`, `/names/{name}/history`, `/search` | 2 |
 
+### Бэкап
+
+`deploy/ops/backup.sh` (`pg_dump -Fc -Z 6`): дамп **846 MB за 129 с**. Тестовое
+восстановление в отдельную базу (`pg_restore --no-owner`) заняло **143 с**.
+Число строк, высота вершины и supply совпали с рабочей базой. Переиндексация с
+нуля для сравнения занимает 1 ч 46 мин.
+
 ## Параметры PostgreSQL
 
 Подобраны под 1.8 GB RAM, общую с нодой (в `docker-compose.override.yaml`):
@@ -157,7 +164,7 @@ Load average 2.1 (максимум 2.9) на одном ядре. Swap заня�
 | `effective_cache_size` | 768MB | дефолт 4GB для этой машины завышен |
 | `work_mem` / `maintenance_work_mem` | 8MB / 128MB | |
 | `random_page_cost` | 1.1 | SSD: планировщик охотнее берёт индексы |
-| `max_wal_size` / `checkpoint_timeout` | 2GB / 15min | реже checkpoint при массовой загрузке |
+| `max_wal_size` / `checkpoint_timeout` | 2GB / 15min на время первичной загрузки, потом 512MB / 15min | реже checkpoint при массовой загрузке |
 | `wal_compression` | on | |
 | `synchronous_commit` | off | индексатор продолжает с последнего блока, потеря последних коммитов при сбое безопасна |
 

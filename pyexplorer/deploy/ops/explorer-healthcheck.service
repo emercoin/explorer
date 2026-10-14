@@ -1,0 +1,7 @@
+[Unit]
+Description=Emercoin explorer health check
+After=docker.service
+
+[Service]
+Type=oneshot
+ExecStart=/opt/explorer/pyexplorer/deploy/ops/healthcheck.sh
