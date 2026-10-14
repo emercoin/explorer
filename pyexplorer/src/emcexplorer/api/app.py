@@ -318,11 +318,11 @@ async def names(
         rows = await conn.fetch(
             """
             SELECT * FROM names
-            WHERE name_text LIKE $1
+            WHERE name_text COLLATE "C" LIKE $1
               AND ($2::text IS NULL OR namespace = $2)
-              AND ($3::text IS NULL OR name_text > $3)
+              AND ($3::text IS NULL OR name_text COLLATE "C" > $3)
               AND ($4 OR (NOT deleted AND expires_at > $5))
-            ORDER BY name_text
+            ORDER BY name_text COLLATE "C"
             LIMIT $6
             """,
             pattern,

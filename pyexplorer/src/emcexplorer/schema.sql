@@ -127,7 +127,7 @@ CREATE INDEX IF NOT EXISTS name_ops_height ON name_ops (height);
 -- (`name_show`), so expiry rules stay the node's responsibility.
 CREATE TABLE IF NOT EXISTS names (
     name       BYTEA   PRIMARY KEY,
-    name_text  TEXT,                        -- NULL if the name is not valid UTF-8
+    name_text  TEXT,                        -- NULL if not valid UTF-8 or contains NUL
     namespace  TEXT,
     value      BYTEA   NOT NULL,
     address    TEXT,
@@ -137,7 +137,10 @@ CREATE TABLE IF NOT EXISTS names (
     deleted    BOOLEAN NOT NULL,
     time       BIGINT
 );
-CREATE INDEX IF NOT EXISTS names_text_prefix ON names (name_text text_pattern_ops);
+-- Byte order ("C"): one index serves both `LIKE 'prefix%'` and ORDER BY of the
+-- /names listing (a text_pattern_ops index cannot do the ORDER BY).
+DROP INDEX IF EXISTS names_text_prefix;
+CREATE INDEX IF NOT EXISTS names_text_c ON names ((name_text COLLATE "C"));
 CREATE INDEX IF NOT EXISTS names_namespace ON names (namespace);
 CREATE INDEX IF NOT EXISTS names_address ON names (address);
 
@@ -146,3 +149,8 @@ CREATE INDEX IF NOT EXISTS names_address ON names (address);
 CREATE TABLE IF NOT EXISTS names_dirty (
     name BYTEA PRIMARY KEY
 );
+
+-- Every block marks older outputs as spent and bumps address totals, so these
+-- two tables collect dead rows steadily; vacuum them before they bloat.
+ALTER TABLE outputs SET (autovacuum_vacuum_scale_factor = 0.02, autovacuum_analyze_scale_factor = 0.02);
+ALTER TABLE address_stats SET (autovacuum_vacuum_scale_factor = 0.02, autovacuum_analyze_scale_factor = 0.02);
