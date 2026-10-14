@@ -36,7 +36,10 @@ COMPOSE=(docker compose --env-file .env)
 "${COMPOSE[@]}" up -d --no-build --remove-orphans
 # The Caddyfile is a single-file bind mount: checkout replaces its inode and the
 # running container would keep the old file, so recreate Caddy when it changed.
-if grep -q '^pyexplorer/deploy/Caddyfile$' <<<"$changed"; then
+# Only if it runs: naming a service switches its profile on, and a host that
+# disables Caddy in the override (another web server on :80) must keep it off.
+if grep -q '^pyexplorer/deploy/Caddyfile$' <<<"$changed" &&
+  [ -n "$("${COMPOSE[@]}" ps -q caddy 2>/dev/null)" ]; then
   "${COMPOSE[@]}" up -d --no-build --force-recreate caddy
 fi
 docker image prune -f
