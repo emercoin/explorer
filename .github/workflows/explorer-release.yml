@@ -1,11 +1,14 @@
-# Release of the Python explorer, started either way:
+# Release of the Python explorer, started any of these ways:
 #   * push a tag vX.Y.Z (must equal the version in pyexplorer/pyproject.toml);
 #   * run the workflow by hand (Actions -> explorer release -> Run workflow, or
 #     the API) on a branch: once the image is pushed it tags the branch head
-#     with the version from pyproject.toml; fails early if that tag exists.
+#     with the version from pyproject.toml; fails early if that tag exists;
+#   * push (merge) to develop touching pyexplorer/: the build gets the tag
+#     vX.Y.Z-dev.N (N = run number) and the image X.Y.Z-dev.N and :develop,
+#     never :latest.
 #
 #   1. tests (explorer-ci.yml)
-#   2. build and push emercoin/explorer:X.Y.Z and :latest to Docker Hub
+#   2. build and push emercoin/explorer:X.Y.Z and :latest (or :develop) to Docker Hub
 #   3. over SSH run pyexplorer/deploy/deploy-service.sh vX.Y.Z on the server
 #
 # Repository secrets:
@@ -21,7 +24,15 @@ name: explorer release
 on:
   push:
     tags: ["v*"]
+    branches: [develop]
+    paths: ["pyexplorer/**"]   # not applied to tag pushes
   workflow_dispatch:
+
+# Runs for one ref go one after another, so a slower older build of develop
+# cannot roll out over a newer one.
+concurrency:
+  group: explorer-release-${{ github.ref }}
+  cancel-in-progress: false
 
 env:
   IMAGE: emercoin/explorer
@@ -34,7 +45,7 @@ jobs:
     needs: test
     runs-on: ubuntu-latest
     permissions:
-      contents: write   # push the tag on a manual run
+      contents: write   # push the tag when building a branch
     outputs:
       version: ${{ steps.ver.outputs.version }}
     steps:
@@ -44,7 +55,11 @@ jobs:
         id: ver
         run: |
           ver=$(grep -oP '^version = "\K[^"]+' pyexplorer/pyproject.toml)
-          if [ "$GITHUB_EVENT_NAME" = workflow_dispatch ]; then
+          channel=latest
+          if [ "$GITHUB_REF" = refs/heads/develop ]; then
+            ver="$ver-dev.$GITHUB_RUN_NUMBER"
+            channel=develop
+          elif [ "$GITHUB_EVENT_NAME" = workflow_dispatch ]; then
             if git ls-remote --exit-code --tags origin "refs/tags/v$ver" >/dev/null; then
               echo "::error::tag v$ver already exists; bump the version in pyexplorer/pyproject.toml"
               exit 1
@@ -54,6 +69,7 @@ jobs:
             exit 1
           fi
           echo "version=$ver" >> "$GITHUB_OUTPUT"
+          echo "channel=$channel" >> "$GITHUB_OUTPUT"
 
       - uses: docker/setup-buildx-action@v3
 
@@ -69,12 +85,12 @@ jobs:
           push: true
           tags: |
             ${{ env.IMAGE }}:${{ steps.ver.outputs.version }}
-            ${{ env.IMAGE }}:latest
+            ${{ env.IMAGE }}:${{ steps.ver.outputs.channel }}
 
       # deploy-service.sh checks out this tag on the server. A tag pushed with
       # GITHUB_TOKEN does not start this workflow a second time.
       - name: Tag the release
-        if: github.event_name == 'workflow_dispatch'
+        if: github.ref_type == 'branch'
         run: |
           git tag "v${{ steps.ver.outputs.version }}" "$GITHUB_SHA"
           git push origin "refs/tags/v${{ steps.ver.outputs.version }}"
