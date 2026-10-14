@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+{% block title %}Blocks · Emercoin explorer{% endblock %}
+{% block content %}
+<h1>Blocks</h1>
+{% include "_blocks.html" %}
+<nav class="pager">
+  <a href="/blocks">Newest</a>
+  {% if next_before %}<a href="/blocks?before={{ next_before }}">Older →</a>{% endif %}
+</nav>
+{% endblock %}

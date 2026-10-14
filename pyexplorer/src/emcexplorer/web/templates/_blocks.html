@@ -1,0 +1,18 @@
+<div class="scroll"><table class="list">
+  <thead>
+    <tr><th>Height</th><th>Time (UTC)</th><th>Proof</th><th class="num">Txs</th><th class="num">Mint, EMC</th><th class="num">Output, EMC</th><th>Hash</th></tr>
+  </thead>
+  <tbody>
+  {% for b in blocks %}
+    <tr>
+      <td><a href="/block/{{ b.height }}">{{ b.height }}</a></td>
+      <td class="nowrap" title="{{ b.time | ago }}">{{ b.time | utc }}</td>
+      <td><span class="tag {{ b.proof }}">{{ b.proof | upper }}</span></td>
+      <td class="num">{{ b.tx_count }}</td>
+      <td class="num">{{ b.mint }}</td>
+      <td class="num">{{ b.value_out }}</td>
+      <td class="mono"><a href="/block/{{ b.hash }}">{{ b.hash | short(8) }}</a></td>
+    </tr>
+  {% endfor %}
+  </tbody>
+</table></div>

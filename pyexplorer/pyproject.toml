@@ -14,6 +14,7 @@ dependencies = [
     "httpx>=0.27",
     "fastapi>=0.110",
     "uvicorn[standard]>=0.29",
+    "jinja2>=3.1",
 ]
 
 [dependency-groups]
@@ -30,7 +31,7 @@ emcexplorer = "emcexplorer.cli:main"
 where = ["src"]
 
 [tool.setuptools.package-data]
-emcexplorer = ["schema.sql"]
+emcexplorer = ["schema.sql", "web/templates/*.html", "web/static/*"]
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"

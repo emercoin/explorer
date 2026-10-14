@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block content %}
+{% set tip = blocks[0] if blocks else none %}
+<section class="stats">
+  <div><span>Height</span><strong>{{ tip.height if tip else "—" }}</strong></div>
+  <div><span>Money supply, EMC</span><strong>{{ tip.supply if tip else "—" }}</strong></div>
+  <div><span>Last block</span><strong>{{ tip.time | ago if tip else "—" }}</strong></div>
+  <div><span>Node height</span><strong>{{ status.node_height if status.node_height is not none else "—" }}</strong></div>
+</section>
+
+<h2>Latest blocks</h2>
+<div hx-get="/_latest" hx-trigger="every 30s" hx-swap="innerHTML">
+  {% include "_blocks.html" %}
+</div>
+<p><a href="/blocks">All blocks →</a></p>
+{% endblock %}

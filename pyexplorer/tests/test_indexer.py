@@ -294,3 +294,33 @@ async def test_api_search_and_validation(api):
     assert (await api.get("/api/v1/txs/' OR 1=1 --")).status_code == 400
     assert (await api.get(f"/api/v1/addresses/{A_}'--")).status_code == 400
     assert (await api.get(f"/api/v1/addresses/{C_}/txs?before=x")).status_code == 400
+
+
+async def test_pages(api):
+    home = await api.get("/")
+    assert home.status_code == 200 and "Latest blocks" in home.text and 'href="/block/3"' in home.text
+    assert "<tr>" in (await api.get("/_latest")).text
+    b = (await api.get("/api/v1/blocks/2")).json()
+    page = await api.get(f"/block/{b['hash']}")
+    assert page.status_code == 200 and "Block 2" in page.text and b["tx"][2]["txid"] in page.text
+    tx = await api.get(f"/tx/{b['tx'][2]['txid']}")
+    assert "name_new" in tx.text and 'href="/name/dns%3Aexample.emc"' in tx.text
+    assert "61.010000" in (await api.get(f"/address/{C_}")).text
+    names = await api.get("/names?prefix=dns:")
+    assert "dns:example.emc" in names.text and "A=5.6.7.8" in names.text
+    name = await api.get("/name/dns%3Aexample.emc")
+    assert name.status_code == 200 and "name_update" in name.text and "active" in name.text
+    assert B_ in (await api.get("/richlist")).text
+    assert (await api.get("/static/style.css")).status_code == 200
+
+
+async def test_pages_search_and_errors(api):
+    r = await api.get("/search?q=2")
+    assert r.status_code == 303 and r.headers["location"] == "/block/2"
+    r = await api.get("/search?q=dns:example.emc")
+    assert r.headers["location"] == "/name/dns%3Aexample.emc"
+    r = await api.get("/search?q=<script>")
+    assert r.status_code == 404 and "<script>" not in r.text and "&lt;script&gt;" in r.text
+    assert (await api.get("/block/999")).status_code == 404
+    assert (await api.get("/tx/zz")).status_code == 400
+    assert (await api.get("/name/dns:missing")).status_code == 404

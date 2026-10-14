@@ -1,12 +1,9 @@
-# Public front for the explorer API. Caddy obtains and renews the TLS certificate
+# Public front of the explorer (web pages and API). Caddy obtains and renews the TLS certificate
 # for EXPLORER_DOMAIN by itself (the DNS record must point here, ports 80/443 open).
 # If the host is put behind Cloudflare later, switch to `tls internal` with CF
 # "Full" mode, as in emercoin/emer-ai-tools.
 {$EXPLORER_DOMAIN} {
 	encode gzip
-
-	# Until a web UI exists, the root shows the interactive API docs.
-	redir / /docs
 
 	reverse_proxy api:8000
 

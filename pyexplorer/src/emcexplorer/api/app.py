@@ -411,8 +411,14 @@ def create_app(dsn: str | None = None, pool: asyncpg.Pool | None = None) -> Fast
         finally:
             await app.state.pool.close()
 
+    # Imported here: the pages module builds on the handlers of this one.
+    from ..web.pages import router as pages_router
+    from ..web.pages import static_files
+
     app = FastAPI(title="Emercoin explorer API", version="1", lifespan=lifespan)
     if pool is not None:
         app.state.pool = pool
     app.include_router(router)
+    app.include_router(pages_router)
+    app.mount("/static", static_files, name="static")
     return app

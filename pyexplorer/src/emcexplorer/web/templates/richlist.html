@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block title %}Rich list · Emercoin explorer{% endblock %}
+{% block content %}
+<h1>Rich list</h1>
+<div class="scroll"><table class="list">
+  <thead><tr><th>#</th><th>Address</th><th class="num">Balance, EMC</th></tr></thead>
+  <tbody>
+  {% for r in rows %}
+    <tr>
+      <td>{{ loop.index }}</td>
+      <td class="mono wrap"><a href="/address/{{ r.address }}">{{ r.address }}</a></td>
+      <td class="num">{{ r.balance }}</td>
+    </tr>
+  {% endfor %}
+  </tbody>
+</table></div>
+{% endblock %}
