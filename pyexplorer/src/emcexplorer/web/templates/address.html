@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% block title %}Address {{ a.address }} · Emercoin explorer{% endblock %}
+{% block content %}
+<h1>Address</h1>
+<p class="mono wrap">{{ a.address }}</p>
+<section class="stats">
+  <div><span>Balance, EMC</span><strong>{{ a.balance }}</strong></div>
+  <div><span>Received, EMC</span><strong>{{ a.received }}</strong></div>
+  <div><span>Sent, EMC</span><strong>{{ a.sent }}</strong></div>
+  <div><span>Transactions</span><strong>{{ a.tx_count }}</strong></div>
+</section>
+<p class="muted">First seen in block <a href="/block/{{ a.first_height }}">{{ a.first_height }}</a>,
+last in <a href="/block/{{ a.last_height }}">{{ a.last_height }}</a>.
+Unspent outputs: <a href="/api/v1/addresses/{{ a.address }}/utxo">JSON</a>.</p>
+
+<h2>Transactions</h2>
+<div class="scroll"><table class="list">
+  <thead><tr><th>Block</th><th>Time (UTC)</th><th>Txid</th><th class="num">Change, EMC</th></tr></thead>
+  <tbody>
+  {% for t in txs['items'] %}
+    <tr>
+      <td><a href="/block/{{ t.height }}">{{ t.height }}</a></td>
+      <td class="nowrap">{{ t.time | utc }}</td>
+      <td class="mono"><a href="/tx/{{ t.txid }}">{{ t.txid | short(12) }}</a></td>
+      <td class="num {{ 'neg' if t.delta.startswith('-') else 'pos' }}">{{ t.delta }}</td>
+    </tr>
+  {% endfor %}
+  </tbody>
+</table></div>
+<nav class="pager">
+  {% if not first_page %}<a href="/address/{{ a.address }}">Newest</a>{% endif %}
+  {% if txs.next %}<a href="?before={{ txs.next }}">Older →</a>{% endif %}
+</nav>
+{% endblock %}

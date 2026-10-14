@@ -1,0 +1,119 @@
+# Release of the Python explorer, started any of these ways:
+#   * push a tag vX.Y.Z (must equal the version in pyexplorer/pyproject.toml);
+#   * run the workflow by hand (Actions -> explorer release -> Run workflow, or
+#     the API) on a branch: once the image is pushed it tags the branch head
+#     with the version from pyproject.toml; fails early if that tag exists;
+#   * push (merge) to develop touching pyexplorer/: the build gets the tag
+#     vX.Y.Z-dev.N (N = run number) and the image X.Y.Z-dev.N and :develop,
+#     never :latest.
+#
+#   1. tests (explorer-ci.yml)
+#   2. build and push emercoin/explorer:X.Y.Z and :latest (or :develop) to Docker Hub
+#   3. over SSH run pyexplorer/deploy/deploy-service.sh vX.Y.Z on the server
+#
+# Repository secrets:
+#   DOCKERHUB_USERNAME, DOCKERHUB_TOKEN   write access to emercoin/explorer on Docker Hub
+# Environment "production" secrets (Settings -> Environments; add reviewers there
+# if a human should approve each rollout):
+#   DEPLOY_HOST          server address, e.g. explorer3.emercoin.com
+#   DEPLOY_USER          SSH user on the server (member of the docker group)
+#   DEPLOY_SSH_KEY       private key of a dedicated CI key pair
+#   DEPLOY_KNOWN_HOSTS   output of `ssh-keyscan -t ed25519 <host>` (pins the host key)
+name: explorer release
+
+on:
+  push:
+    tags: ["v*"]
+    branches: [develop]
+    paths: ["pyexplorer/**"]   # not applied to tag pushes
+  workflow_dispatch:
+
+# Runs for one ref go one after another, so a slower older build of develop
+# cannot roll out over a newer one.
+concurrency:
+  group: explorer-release-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  IMAGE: emercoin/explorer
+
+jobs:
+  test:
+    uses: ./.github/workflows/explorer-ci.yml
+
+  publish:
+    needs: test
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write   # push the tag when building a branch
+    outputs:
+      version: ${{ steps.ver.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check the tag matches pyproject.toml
+        id: ver
+        run: |
+          ver=$(grep -oP '^version = "\K[^"]+' pyexplorer/pyproject.toml)
+          channel=latest
+          if [ "$GITHUB_REF" = refs/heads/develop ]; then
+            ver="$ver-dev.$GITHUB_RUN_NUMBER"
+            channel=develop
+          elif [ "$GITHUB_EVENT_NAME" = workflow_dispatch ]; then
+            if git ls-remote --exit-code --tags origin "refs/tags/v$ver" >/dev/null; then
+              echo "::error::tag v$ver already exists; bump the version in pyexplorer/pyproject.toml"
+              exit 1
+            fi
+          elif [ "${GITHUB_REF_NAME#v}" != "$ver" ]; then
+            echo "::error::tag $GITHUB_REF_NAME does not match pyproject version $ver"
+            exit 1
+          fi
+          echo "version=$ver" >> "$GITHUB_OUTPUT"
+          echo "channel=$channel" >> "$GITHUB_OUTPUT"
+
+      - uses: docker/setup-buildx-action@v3
+
+      - uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - uses: docker/build-push-action@v6
+        with:
+          context: ./pyexplorer
+          platforms: linux/amd64
+          push: true
+          tags: |
+            ${{ env.IMAGE }}:${{ steps.ver.outputs.version }}
+            ${{ env.IMAGE }}:${{ steps.ver.outputs.channel }}
+
+      # deploy-service.sh checks out this tag on the server. A tag pushed with
+      # GITHUB_TOKEN does not start this workflow a second time.
+      - name: Tag the release
+        if: github.ref_type == 'branch'
+        run: |
+          git tag "v${{ steps.ver.outputs.version }}" "$GITHUB_SHA"
+          git push origin "refs/tags/v${{ steps.ver.outputs.version }}"
+
+  deploy:
+    needs: publish
+    runs-on: ubuntu-latest
+    environment: production
+    concurrency:
+      group: explorer-deploy
+      cancel-in-progress: false
+    steps:
+      - name: Roll out on the server
+        env:
+          SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          KNOWN_HOSTS: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+          DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+          RELEASE_TAG: v${{ needs.publish.outputs.version }}
+        run: |
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "$SSH_KEY" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          printf '%s\n' "$KNOWN_HOSTS" > ~/.ssh/known_hosts
+          ssh -o BatchMode=yes "$DEPLOY_USER@$DEPLOY_HOST" \
+            "bash /opt/explorer/pyexplorer/deploy/deploy-service.sh $RELEASE_TAG"

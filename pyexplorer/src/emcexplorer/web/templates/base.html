@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}Emercoin explorer{% endblock %}</title>
+  <link rel="stylesheet" href="/static/style.css">
+  <script src="/static/htmx.min.js" defer></script>
+</head>
+<body>
+<header>
+  <nav>
+    <a class="brand" href="/">Emercoin explorer</a>
+    <a href="/blocks">Blocks</a>
+    <a href="/names">Names</a>
+    <a href="/richlist">Rich list</a>
+    <a href="/docs">API</a>
+  </nav>
+  <form class="search" action="/search" method="get" role="search">
+    <input type="search" name="q" placeholder="Block, transaction, address or name" aria-label="Search"
+           value="{{ q | default('') }}" required>
+    <button type="submit">Search</button>
+  </form>
+</header>
+<main>
+{% block content %}{% endblock %}
+</main>
+<footer>
+  {% if status.indexed_height is not none %}
+  Indexed block <a href="/block/{{ status.indexed_height }}">{{ status.indexed_height }}</a>
+  of {{ status.node_height }} · {{ status.indexed_time | utc }} UTC
+  {% else %}
+  The index is empty.
+  {% endif %}
+  · <a href="/docs">API</a>
+</footer>
+</body>
+</html>

@@ -1,0 +1,14 @@
+# Public front of the explorer (web pages and API). Caddy obtains and renews the TLS certificate
+# for EXPLORER_DOMAIN by itself (the DNS record must point here, ports 80/443 open).
+# If the host is put behind Cloudflare later, switch to `tls internal` with CF
+# "Full" mode, as in emercoin/emer-ai-tools.
+{$EXPLORER_DOMAIN} {
+	encode gzip
+
+	reverse_proxy api:8000
+
+	log {
+		output stdout
+		format json
+	}
+}

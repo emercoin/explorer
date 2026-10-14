@@ -1,0 +1,121 @@
+# Emercoin explorer on one host: node + PostgreSQL + indexer + API + Caddy.
+#
+# First start on a fresh host (see ../README.md, "Развёртывание"):
+#   docker volume create emer_explorer_chain
+#   docker volume create emer_explorer_pg
+#   cp emercoin.conf.example emercoin.conf && cp .env.example .env   # fill both in
+#   docker compose --env-file .env up -d
+#
+# Only Caddy publishes ports. The node's RPC and PostgreSQL stay on the internal
+# network, so the RPC password never travels outside this host.
+name: explorer
+
+x-logging: &logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
+
+x-explorer: &explorer
+  image: emercoin/explorer:${EXPLORER_TAG:-latest}
+  build: ..
+  logging: *logging
+  environment:
+    EMC_RPC_URL: http://explorer:${EMC_RPC_PASSWORD:?set EMC_RPC_PASSWORD in .env}@emc:6662/
+    DATABASE_URL: postgresql://explorer:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}@postgres:5432/explorer
+
+networks:
+  default:
+    ipam:
+      config:
+        - subnet: 172.28.0.0/24   # matches rpcallowip in emercoin.conf
+
+volumes:
+  # External, so `docker compose down -v` cannot wipe a synced chain or index.
+  chain:
+    name: emer_explorer_chain
+    external: true
+  pgdata:
+    name: emer_explorer_pg
+    external: true
+  caddy_data:
+  caddy_config:
+
+services:
+  emc:
+    image: emercoin/core:0.8.5
+    container_name: explorer-emc
+    restart: unless-stopped
+    logging: *logging
+    volumes:
+      - chain:/srv/emercoind
+      - ./emercoin.conf:/srv/emercoind/emercoin.conf:ro
+    stop_grace_period: 60s
+    command: /bin/emercoind -datadir=/srv/emercoind -conf=/srv/emercoind/emercoin.conf -printtoconsole
+    ports:
+      - "6661:6661"   # P2P only; RPC (6662) is not published
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: explorer-postgres
+    restart: unless-stopped
+    logging: *logging
+    environment:
+      POSTGRES_USER: explorer
+      POSTGRES_DB: explorer
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    shm_size: 256mb
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U explorer -d explorer"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  # One-shot: creates/updates the schema, then exits. indexer and api wait for it.
+  migrate:
+    <<: *explorer
+    container_name: explorer-migrate
+    command: ["initdb"]
+    restart: "no"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  indexer:
+    <<: *explorer
+    container_name: explorer-indexer
+    command: ["index"]
+    restart: unless-stopped
+    stop_grace_period: 30s
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      emc:
+        condition: service_started
+
+  api:
+    <<: *explorer
+    container_name: explorer-api
+    command: ["api", "--host", "0.0.0.0", "--port", "8000"]
+    restart: unless-stopped
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+
+  caddy:
+    image: caddy:2
+    container_name: explorer-caddy
+    restart: unless-stopped
+    logging: *logging
+    environment:
+      EXPLORER_DOMAIN: ${EXPLORER_DOMAIN:?set EXPLORER_DOMAIN in .env}
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on: [api]

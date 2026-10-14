@@ -1,0 +1,7 @@
+{% extends "base.html" %}
+{% block title %}{{ code }} · Emercoin explorer{% endblock %}
+{% block content %}
+<h1>{% if code == 404 %}Not found{% else %}Error {{ code }}{% endif %}</h1>
+<p>{{ detail }}</p>
+<p><a href="/">Back to the latest blocks</a></p>
+{% endblock %}
