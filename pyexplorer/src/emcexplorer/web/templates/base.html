@@ -4,6 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{% block title %}Emercoin explorer{% endblock %}</title>
+  <link rel="icon" href="/static/favicon.ico?v={{ asset_version }}" type="image/x-icon">
   <link rel="stylesheet" href="/static/style.css?v={{ asset_version }}">
   <script src="/static/htmx.min.js?v={{ asset_version }}" defer></script>
 </head>
@@ -16,7 +17,6 @@
     <a href="/names">Names</a>
     <a href="/richlist">Rich list</a>
     <a href="/stats">Statistics</a>
-    <a href="/docs">API</a>
   </nav>
   <form class="search" action="/search" method="get" role="search">
     <input type="search" name="q" placeholder="Block, transaction, address or name" aria-label="Search"

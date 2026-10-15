@@ -13,7 +13,7 @@ from typing import Any
 from urllib.parse import quote
 
 from fastapi import APIRouter, HTTPException, Query, Request
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
@@ -74,7 +74,7 @@ def _asset_version() -> str:
     never served a stylesheet cached by Cloudflare or the browser."""
     digest = hashlib.sha256()
     static = files("emcexplorer.web").joinpath("static")
-    for name in ("style.css", "htmx.min.js"):
+    for name in ("style.css", "htmx.min.js", "favicon.ico"):
         digest.update(static.joinpath(name).read_bytes())
     return digest.hexdigest()[:10]
 
@@ -145,6 +145,17 @@ async def mempool(request: Request) -> HTMLResponse:
     except HTTPException as e:
         return await _error(request, e)
     return await _render(request, "mempool.html", pool=pool)
+
+
+@router.get("/favicon.ico", include_in_schema=False)
+async def favicon() -> FileResponse:
+    # Browsers ask for /favicon.ico on their own (feed readers, bookmarks), so it
+    # lives here as well as at the versioned /static URL the pages link to.
+    return FileResponse(
+        str(files("emcexplorer.web").joinpath("static", "favicon.ico")),
+        media_type="image/x-icon",
+        headers={"cache-control": "public, max-age=86400"},
+    )
 
 
 @router.get("/address/{address}", response_class=HTMLResponse)

@@ -7,6 +7,7 @@ import json
 import re
 from contextlib import asynccontextmanager
 from typing import Any
+from urllib.parse import urlsplit, urlunsplit
 
 import asyncpg
 from fastapi import APIRouter, FastAPI, HTTPException, Query, Request
@@ -625,7 +626,8 @@ def create_app(
     from ..web.pages import static_files
     from .legacy import router as legacy_router
 
-    app = FastAPI(title="Emercoin explorer API", version="1", lifespan=lifespan)
+    # API description at /docs (Swagger UI); /redoc would only repeat it
+    app = FastAPI(title="Emercoin explorer API", version="1", lifespan=lifespan, redoc_url=None)
     app.state.mempool = Mempool(rpc)
     if pool is not None:
         app.state.pool = pool
@@ -635,8 +637,16 @@ def create_app(
     app.mount("/static", static_files, name="static")
 
     @app.middleware("http")
-    async def cache_headers(request: Request, call_next):
+    async def response_headers(request: Request, call_next):
         response = await call_next(request)
+        location = response.headers.get("location")
+        if location:
+            # Behind nginx/Cloudflare the app sees plain http, so its own absolute
+            # redirects (e.g. /api -> /api/) would send https visitors to http.
+            # A path without scheme and host keeps the visitor's scheme.
+            url = urlsplit(location)
+            if url.netloc == request.url.netloc:
+                response.headers["location"] = urlunsplit(("", "", url.path, url.query, url.fragment))
         if "cache-control" not in response.headers:
             policy = cache_policy(request.url.path, request.url.query, response.status_code)
             if policy:
