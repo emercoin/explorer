@@ -517,6 +517,30 @@ def cache_policy(path: str, query: str, status: int) -> str | None:
     return None
 
 
+class HeadAsGet:
+    """Answer HEAD like GET without the body: FastAPI routes only list GET.
+
+    Monitors and `curl -I` send HEAD; without this every page answers 405.
+    The headers, Content-Length included, stay those of the GET response.
+    """
+
+    def __init__(self, app):
+        self.app = app
+
+    async def __call__(self, scope, receive, send):
+        if scope["type"] != "http" or scope["method"] != "HEAD":
+            return await self.app(scope, receive, send)
+
+        async def headers_only(message):
+            if message["type"] == "http.response.body":
+                if message.get("more_body"):
+                    return
+                message = {"type": "http.response.body", "body": b""}
+            await send(message)
+
+        await self.app({**scope, "method": "GET"}, receive, headers_only)
+
+
 def create_app(
     dsn: str | None = None,
     pool: asyncpg.Pool | None = None,
@@ -569,4 +593,5 @@ def create_app(
                 response.headers["cache-control"] = policy
         return response
 
+    app.add_middleware(HeadAsGet)
     return app
