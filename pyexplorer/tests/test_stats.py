@@ -123,3 +123,13 @@ async def test_cache_headers(api):
     assert (await api.get("/api/stats/block_height")).headers["cache-control"] == "public, max-age=10"
     assert "cache-control" not in (await api.get("/stats")).headers  # pages: browser default
     assert (await api.get("/api/v1/mempool")).headers["cache-control"] == "no-store"  # 503, no node here
+
+
+async def test_head_requests(api):
+    for url in ("/stats", "/api/v1/status", "/api/stats/block_height", "/static/style.css"):
+        get, head = await api.get(url), await api.head(url)
+        assert head.status_code == 200 and head.content == b"", url
+        assert head.headers["content-length"] == get.headers["content-length"], url
+        assert head.headers.get("cache-control") == get.headers.get("cache-control"), url
+    assert (await api.head("/block/999")).status_code == 404
+    assert (await api.post("/api/v1/status")).status_code == 405
