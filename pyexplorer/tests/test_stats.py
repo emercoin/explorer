@@ -133,3 +133,14 @@ async def test_head_requests(api):
         assert head.headers.get("cache-control") == get.headers.get("cache-control"), url
     assert (await api.head("/block/999")).status_code == 404
     assert (await api.post("/api/v1/status")).status_code == 405
+
+
+async def test_api_docs_and_redirects(api):
+    page = (await api.get("/stats")).text
+    header, footer = page.split("<main>")[0], page.split("<footer>")[1]
+    assert 'href="/docs"' not in header and 'href="/docs"' in footer
+    assert (await api.get("/docs")).status_code == 200
+    assert (await api.get("/redoc")).status_code == 404
+    # own redirects carry no scheme, so an https visitor stays on https
+    r = await api.get("/api")
+    assert r.status_code == 307 and r.headers["location"] == "/api/"
