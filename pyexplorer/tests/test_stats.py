@@ -144,3 +144,11 @@ async def test_api_docs_and_redirects(api):
     # own redirects carry no scheme, so an https visitor stays on https
     r = await api.get("/api")
     assert r.status_code == 307 and r.headers["location"] == "/api/"
+
+
+async def test_favicon(api):
+    assert '<link rel="icon" href="/static/favicon.ico?v=' in (await api.get("/stats")).text
+    icon = await api.get("/favicon.ico")
+    assert icon.status_code == 200 and icon.headers["content-type"] == "image/x-icon"
+    assert icon.content[:4] == b"\x00\x00\x01\x00"  # ICO header
+    assert icon.headers["cache-control"] == "public, max-age=86400"
