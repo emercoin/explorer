@@ -36,8 +36,11 @@ class TxOut:
     n: int
     value: int
     script_type: str | None
-    address: str | None
+    address: str | None  # the first address; the one credited with the value
     script: bytes
+    # bare multisig only: every key's address and how many must sign
+    addresses: list[str] | None = None
+    required: int | None = None
 
     @property
     def is_empty(self) -> bool:
@@ -123,6 +126,7 @@ def parse_tx(raw: dict[str, Any], idx: int) -> Tx:
     outputs = []
     for vout in raw["vout"]:
         spk = vout.get("scriptPubKey", {})
+        multisig = spk.get("type") == "multisig"
         outputs.append(
             TxOut(
                 n=vout["n"],
@@ -130,6 +134,8 @@ def parse_tx(raw: dict[str, Any], idx: int) -> Tx:
                 script_type=spk.get("type"),
                 address=_address(spk),
                 script=bytes.fromhex(spk.get("hex", "")),
+                addresses=list(spk.get("addresses") or []) if multisig else None,
+                required=spk.get("reqSigs") if multisig else None,
             )
         )
 

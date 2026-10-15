@@ -144,7 +144,8 @@ async def apply_block(conn: asyncpg.Connection, block: Block) -> None:
                 if o.address:
                     per_addr[o.address][0] += o.value
                 out_rows.append(
-                    (tx.txid, o.n, block.height, o.value, o.script_type, o.address, o.script)
+                    (tx.txid, o.n, block.height, o.value, o.script_type, o.address, o.script,
+                     o.addresses, o.required)
                 )
             special = tx.is_coinbase or tx.is_coinstake
             fee = 0 if special else value_in - value_out
@@ -192,7 +193,8 @@ async def apply_block(conn: asyncpg.Connection, block: Block) -> None:
         await conn.copy_records_to_table(
             "outputs",
             records=out_rows,
-            columns=["txid", "n", "height", "value", "script_type", "address", "script"],
+            columns=["txid", "n", "height", "value", "script_type", "address", "script",
+                     "addresses", "required"],
         )
         await conn.copy_records_to_table(
             "inputs",
@@ -294,6 +296,39 @@ async def rollback_to(conn: asyncpg.Connection, height: int) -> None:
                 """,
                 addresses,
             )
+
+
+async def backfill_multisig(conn: asyncpg.Connection, rpc: RpcClient, batch_size: int = 500) -> int:
+    """Fill `addresses` and `required` of multisig outputs indexed before those columns.
+
+    Runs once (one pass over outputs), then leaves a mark in meta. The node
+    decodes each script (decodescript), so the addresses are encoded exactly
+    as in getblock. Returns how many outputs were filled.
+    """
+    if await conn.fetchval("SELECT 1 FROM meta WHERE key = 'multisig_backfill'"):
+        return 0
+    rows = await conn.fetch(
+        "SELECT txid, n, script FROM outputs WHERE script_type = 'multisig' AND addresses IS NULL"
+    )
+    for i in range(0, len(rows), batch_size):
+        chunk = rows[i : i + batch_size]
+        decoded = await rpc.batch([("decodescript", [r["script"].hex()]) for r in chunk])
+        await conn.execute(
+            """
+            UPDATE outputs o
+            SET addresses = ARRAY(SELECT jsonb_array_elements_text(u.addrs::jsonb)), required = u.required
+            FROM unnest($1::bytea[], $2::int[], $3::text[], $4::int[]) AS u(txid, n, addrs, required)
+            WHERE o.txid = u.txid AND o.n = u.n
+            """,
+            [r["txid"] for r in chunk],
+            [r["n"] for r in chunk],
+            # text[][] needs rows of equal length, so each list travels as a JSON string
+            [json.dumps(d.get("addresses") or []) for d in decoded],
+            [d.get("reqSigs") for d in decoded],
+        )
+    await set_meta(conn, "multisig_backfill", {"outputs": len(rows)})
+    log.info("multisig outputs: filled the addresses of %d", len(rows))
+    return len(rows)
 
 
 def _same_name(asked: bytes, returned: str | None) -> bool:

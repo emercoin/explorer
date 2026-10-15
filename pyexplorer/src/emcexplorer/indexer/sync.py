@@ -74,6 +74,7 @@ class Indexer:
                 # Name state is read from the node; do it once near the tip
                 # instead of after every block of the initial sync.
                 await store.refresh_dirty_names(conn, self.rpc)
+                await store.backfill_multisig(conn, self.rpc)
                 await stats.refresh_daily_stats(conn)
             return start > target
 

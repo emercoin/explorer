@@ -65,7 +65,9 @@
         <tr>
           <td>{{ o.n }}</td>
           <td class="wrap">
-            {% if o.address %}<a class="mono" href="/address/{{ o.address }}">{{ o.address }}</a>{% else %}<span class="muted">{{ o.type or "nonstandard" }}</span>{% endif %}
+            {% if o.addresses %}<span class="small muted">multisig, {{ o.required }} of {{ o.addresses | length }}:</span>
+              {% for a in o.addresses %}<br><a class="mono" href="/address/{{ a }}">{{ a }}</a>{% endfor %}
+            {% elif o.address %}<a class="mono" href="/address/{{ o.address }}">{{ o.address }}</a>{% else %}<span class="muted">{{ o.type or "nonstandard" }}</span>{% endif %}
             {% if o.spent_by %}<br><a class="small" href="/tx/{{ o.spent_by.txid }}">spent in block {{ o.spent_by.height }}</a>{% elif t.height is defined and t.height is not none %}<br><span class="small muted">unspent</span>{% endif %}
           </td>
           <td class="num">{{ o.value }}</td>
