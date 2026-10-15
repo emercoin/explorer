@@ -152,3 +152,13 @@ async def test_favicon(api):
     assert icon.status_code == 200 and icon.headers["content-type"] == "image/x-icon"
     assert icon.content[:4] == b"\x00\x00\x01\x00"  # ICO header
     assert icon.headers["cache-control"] == "public, max-age=86400"
+
+
+async def test_footer_build(api, monkeypatch):
+    from emcexplorer.web.pages import templates
+
+    assert "github.com/emercoin/explorer/commit" not in (await api.get("/stats")).text  # local run
+    monkeypatch.setitem(templates.env.globals, "build", {"version": "v0.1.0-dev.14", "commit": "ab" * 20})
+    footer = (await api.get("/stats")).text.split("<footer>")[1]
+    assert "v0.1.0-dev.14" in footer
+    assert f'href="https://github.com/emercoin/explorer/commit/{"ab" * 20}">abababa</a>' in footer

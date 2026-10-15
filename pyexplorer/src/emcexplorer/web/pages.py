@@ -7,6 +7,7 @@ lives in one place and the pages show exactly what the API returns.
 from __future__ import annotations
 
 import hashlib
+import os
 from datetime import UTC, datetime
 from importlib.resources import files
 from typing import Any
@@ -80,6 +81,11 @@ def _asset_version() -> str:
 
 
 templates.env.globals["asset_version"] = _asset_version()
+# Release and commit the image was built from (see the Dockerfile); empty when run from a checkout.
+templates.env.globals["build"] = {
+    "version": os.environ.get("EXPLORER_VERSION", ""),
+    "commit": os.environ.get("EXPLORER_COMMIT", ""),
+}
 
 
 async def _render(request: Request, template: str, status_code: int = 200, **ctx: Any) -> HTMLResponse:
