@@ -33,6 +33,9 @@ case "$action" in
     echo "== containers";   "${COMPOSE[@]}" ps --format 'table {{.Service}}\t{{.Image}}\t{{.Status}}'
     echo "== index";        curl -sf --max-time 10 "$API_URL/api/v1/status" || echo "API $API_URL does not answer"
     echo
+    echo "== meta"  # indexer bookkeeping: daily stats mark, one-off backfills
+    "${COMPOSE[@]}" exec -T postgres psql -U explorer -d explorer -Atc \
+      "SELECT key || ': ' || value FROM meta WHERE key <> 'status' ORDER BY key" 2>&1 | sed 's/^/  /'
     echo "== disk";         df -h --output=size,used,avail,pcent / | sed 's/^/  /'
     echo "== health";       journalctl -t explorer-health -n 10 --no-pager -o short-iso 2>/dev/null || true
     ;;
