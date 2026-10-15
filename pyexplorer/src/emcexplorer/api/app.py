@@ -168,8 +168,19 @@ async def transaction(request: Request, txid: str) -> dict[str, Any]:
         ins = await conn.fetch("SELECT * FROM inputs WHERE txid = $1 ORDER BY n", key)
         outs = await conn.fetch("SELECT * FROM outputs WHERE txid = $1 ORDER BY n", key)
         names = await conn.fetch("SELECT * FROM name_ops WHERE txid = $1 ORDER BY n", key)
+        # names carried by the spent outputs: since 0.8 one transaction can move several
+        spent_names = await conn.fetch(
+            """
+            SELECT i.n, o.name FROM inputs i
+            JOIN name_ops o ON o.txid = i.prev_txid AND o.n = i.prev_n
+            WHERE i.txid = $1
+            """,
+            key,
+        )
         block_hash = await conn.fetchval("SELECT hash FROM blocks WHERE height = $1", tx["height"])
         tip = await _tip(conn)
+    in_names = {r["n"]: _bytes_field(r["name"]) for r in spent_names}
+    out_names = {n["n"]: _bytes_field(n["name"]) for n in names}
     result = _tx_summary(tx)
     result.update(
         blockhash=block_hash.hex(),
@@ -186,6 +197,7 @@ async def transaction(request: Request, txid: str) -> dict[str, Any]:
                 "randpay": i["is_randpay"],
                 "value": format_units(i["value"]),
                 "address": i["address"],
+                "name": in_names.get(i["n"]),
             }
             for i in ins
         ],
@@ -197,6 +209,7 @@ async def transaction(request: Request, txid: str) -> dict[str, Any]:
                 "address": o["address"],
                 **multisig_fields(o["addresses"], o["required"]),
                 "script": o["script"].hex(),
+                "name": out_names.get(o["n"]),
                 "spent_by": (
                     {"txid": o["spent_txid"].hex(), "vin": o["spent_n"], "height": o["spent_height"]}
                     if o["spent_txid"]

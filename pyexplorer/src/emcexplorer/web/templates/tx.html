@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% block title %}Transaction {{ t.txid | short(6) }} · Emercoin explorer{% endblock %}
+{% macro name_tag(f) %}{% set text = f | field %}{% set url = f | name_url %}<span class="small" title="{{ text }}">name: {% if url %}<a href="{{ url }}">{{ text | truncate(40, true, "…", 0) }}</a>{% else %}{{ text | truncate(40, true, "…", 0) }}{% endif %}</span>{% endmacro %}
 {% block content %}
 <h1>Transaction</h1>
 <p class="mono wrap">{{ t.txid }}</p>
@@ -48,6 +49,7 @@
             {% elif i.randpay %}randpay
             {% else %}
               {% if i.address %}<a class="mono" href="/address/{{ i.address }}">{{ i.address }}</a>{% else %}<span class="muted">no address</span>{% endif %}
+              {% if i.name %}<br>{{ name_tag(i.name) }}{% endif %}
               <br><a class="mono small" href="/tx/{{ i.txid }}">{{ i.txid | short(8) }}:{{ i.vout }}</a>
             {% endif %}
           </td>
@@ -68,6 +70,7 @@
             {% if o.addresses %}<span class="small muted">multisig, {{ o.required }} of {{ o.addresses | length }}:</span>
               {% for a in o.addresses %}<br><a class="mono" href="/address/{{ a }}">{{ a }}</a>{% endfor %}
             {% elif o.address %}<a class="mono" href="/address/{{ o.address }}">{{ o.address }}</a>{% else %}<span class="muted">{{ o.type or "nonstandard" }}</span>{% endif %}
+            {% if o.name %}<br>{{ name_tag(o.name) }}{% endif %}
             {% if o.spent_by %}<br><a class="small" href="/tx/{{ o.spent_by.txid }}">spent in block {{ o.spent_by.height }}</a>{% elif t.height is defined and t.height is not none %}<br><span class="small muted">unspent</span>{% endif %}
           </td>
           <td class="num">{{ o.value }}</td>
