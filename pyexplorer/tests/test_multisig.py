@@ -39,7 +39,9 @@ async def test_multisig_output(api):
     assert (await api.get(f"/api/v1/addresses/{B_}")).json()["received"] == "60.000000"
     assert (await api.get(f"/api/v1/addresses/{M_}")).status_code == 404
     listed = (await api.get(f"/api/v1/addresses/{M_}/multisig")).json()
-    assert [(m["txid"], m["vout"], m["value"], m["required"]) for m in listed] == [(locked, 0, "60.000000", 2)]
+    assert [(m["txid"], m["vout"], m["value"], m["required"]) for m in listed] == [
+        (locked, 0, "60.000000", 2)
+    ]
     assert listed[0]["spent_by"]["height"] == 2
     assert (await api.get(f"/api/v1/addresses/{D_}/multisig")).json() == []
 
@@ -62,7 +64,8 @@ async def test_backfill_older_index(pool):
     await sync(pool, node)
     assert await snapshot(pool) == fresh
     async with pool.acquire() as conn:
-        assert await conn.fetchval("SELECT value->>'outputs' FROM meta WHERE key = 'multisig_backfill'") == "1"
+        mark = await conn.fetchval("SELECT value->>'outputs' FROM meta WHERE key = 'multisig_backfill'")
+        assert mark == "1"
 
     await reset(pool)
     await sync(pool, node)
