@@ -6,6 +6,7 @@ lives in one place and the pages show exactly what the API returns.
 
 from __future__ import annotations
 
+import hashlib
 from datetime import UTC, datetime
 from importlib.resources import files
 from typing import Any
@@ -64,6 +65,19 @@ def _name_url(f: dict[str, Any]) -> str | None:
 
 
 templates.env.filters.update(utc=_utc, ago=_ago, short=_short, field=_field, name_url=_name_url)
+
+
+def _asset_version() -> str:
+    """Hash of the static files, appended to their URLs so that a release is
+    never served a stylesheet cached by Cloudflare or the browser."""
+    digest = hashlib.sha256()
+    static = files("emcexplorer.web").joinpath("static")
+    for name in ("style.css", "htmx.min.js"):
+        digest.update(static.joinpath(name).read_bytes())
+    return digest.hexdigest()[:10]
+
+
+templates.env.globals["asset_version"] = _asset_version()
 
 
 async def _render(request: Request, template: str, status_code: int = 200, **ctx: Any) -> HTMLResponse:

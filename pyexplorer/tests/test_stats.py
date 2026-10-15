@@ -104,3 +104,11 @@ async def test_stats_page_before_first_refresh(pool):
     async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://t") as c:
         assert (await c.get("/stats")).status_code == 404  # empty index
         assert (await c.get("/api/v1/stats/daily")).json() == []
+
+
+async def test_static_urls_are_versioned(api):
+    page = (await api.get("/stats")).text
+    assert '/static/style.css?v=' in page and '/static/htmx.min.js?v=' in page
+    # without the stylesheet the hit areas must stay transparent, not black
+    assert '<rect class="hit" fill="transparent"' in page
+    assert (await api.get("/static/style.css?v=whatever")).status_code == 200
