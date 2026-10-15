@@ -17,6 +17,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
 from ..api import app as api
+from .charts import Point, bar_chart, compact, line_chart
 
 router = APIRouter(include_in_schema=False)
 templates = Jinja2Templates(directory=str(files("emcexplorer.web").joinpath("templates")))
@@ -155,6 +156,54 @@ async def name(request: Request, name: str) -> HTMLResponse:
 async def richlist(request: Request) -> HTMLResponse:
     rows = await api.richlist(request, limit=100)
     return await _render(request, "richlist.html", rows=rows)
+
+
+def _sample(days: list[dict[str, Any]], every: int) -> list[dict[str, Any]]:
+    """Every `every`-th day of a long history (oldest first), always keeping the last one."""
+    picked = days[::every]
+    if picked[-1] is not days[-1]:
+        picked.append(days[-1])
+    return picked
+
+
+@router.get("/stats", response_class=HTMLResponse)
+async def stats(request: Request) -> HTMLResponse:
+    try:
+        summary = await api.stats_summary(request)
+    except HTTPException as e:
+        return await _error(request, e)
+    history = list(reversed(await api.stats_daily(request, days=10000)))  # oldest first
+    recent = history[-90:]
+    long = _sample(history, max(len(history) // 300, 1)) if history else []
+    charts = {}
+    if history:
+        charts = {
+            "payments": bar_chart(
+                [Point(d["date"], d["payments"], f"{d['date']}: {d['payments']:,} transactions")
+                 for d in recent],
+                "Transactions per day, last 90 days",
+            ),
+            "active": bar_chart(
+                [Point(d["date"], d["active_addresses"], f"{d['date']}: {d['active_addresses']:,} addresses")
+                 for d in recent],
+                "Active addresses per day, last 90 days",
+            ),
+            "supply": line_chart(
+                [Point(d["date"], float(d["supply"]), f"{d['date']}: {float(d['supply']):,.0f} EMC")
+                 for d in long],
+                "Coin supply, EMC",
+                compact(float(long[-1]["supply"])),
+            ),
+            "size": line_chart(
+                [Point(d["date"], d["chain_size"] / 1e6, f"{d['date']}: {d['chain_size'] / 1e6:,.1f} MB")
+                 for d in long],
+                "Chain size, MB",
+                f"{long[-1]['chain_size'] / 1e6:,.0f} MB",
+            ),
+        }
+    return await _render(
+        request, "stats.html", summary=summary, charts=charts, table=list(reversed(history[-30:]))
+    )
 
 
 @router.get("/search")

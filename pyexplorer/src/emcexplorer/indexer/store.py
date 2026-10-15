@@ -274,6 +274,12 @@ async def rollback_to(conn: asyncpg.Connection, height: int) -> None:
         )
         # Cascades to transactions, outputs, inputs, name_ops and address_txs.
         await conn.execute("DELETE FROM blocks WHERE height > $1", height)
+        # daily_stats is rebuilt from the surviving blocks on its next refresh
+        await conn.execute(
+            "UPDATE meta SET value = jsonb_build_object('height', least((value->>'height')::int, $1)) "
+            "WHERE key = 'daily_stats'",
+            height,
+        )
         if addresses:
             await conn.execute("DELETE FROM address_stats WHERE address = ANY($1::text[])", addresses)
             await conn.execute(

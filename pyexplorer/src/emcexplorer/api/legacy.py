@@ -7,8 +7,11 @@ amounts are plain decimals without trailing zeros, errors come back as
 
 Fields the new index does not keep (coin-days destroyed, address counters per
 block, entropy bit, modifier checksum, script asm, required signatures, input
-scripts) are null. The undocumented chart routes (/api/stats/known_addresses
-and the like) and /api/address/ismine (a wallet call) are not served.
+scripts) are null. /api/address/ismine (a wallet call) is not served.
+
+The chart routes (/api/stats/{known_addresses,addresses_in_use,empty_addresses,
+chain_size}/{30days,60days}) read daily_stats. Addresses with a balance are
+only known for days the indexer sampled, so the last two start short.
 """
 
 from __future__ import annotations
@@ -24,6 +27,7 @@ from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import PlainTextResponse, Response
 
 from ..amounts import COIN
+from .app import daily_rows
 
 router = APIRouter(include_in_schema=False)
 
@@ -373,6 +377,59 @@ async def _address(conn: asyncpg.Connection, pattern: str, details: str):
     return result
 
 
+CHARTS = ("known_addresses", "addresses_in_use", "empty_addresses", "chain_size")
+
+
+def _php_date(day) -> str:
+    return f"{day.year}-{day.month}-{day.day}"  # MySQL CONCAT(YEAR, '-', MONTH, '-', DAY)
+
+
+def _pct(new: float, old: float) -> float:
+    return round((new - old) / new * 100, 2) if new else 0
+
+
+async def _chart(conn: asyncpg.Connection, subtype: str, period: str, details: str):
+    days = 30 if period == "30days" else 60
+    rows = await daily_rows(conn, days + 1)  # one more day to compare the oldest with
+    if subtype == "chain_size":
+        points = [(r["day"], r["chain_size"]) for r in rows]
+    elif subtype == "known_addresses":
+        points = [(r["day"], r["known_addresses"]) for r in rows]
+    else:
+        sampled = [r for r in rows if r["funded_addresses"] is not None]
+        if subtype == "addresses_in_use":
+            points = [(r["day"], r["funded_addresses"]) for r in sampled]
+        else:
+            points = [(r["day"], r["known_addresses"] - r["funded_addresses"]) for r in sampled]
+
+    pairs = list(zip(points, points[1:], strict=False))
+    if subtype != "chain_size":
+        return [
+            {subtype: _s(cur), "change": cur - old, "percent_change": _pct(cur, old), "date": _php_date(day)}
+            for (day, cur), (_, old) in pairs
+        ]
+    if details == "sum":
+        if not pairs:
+            return []
+        return [{
+            "current_chain_size": round(points[0][1] / 1024, 2),
+            "old_chain_size": round(points[-1][1] / 1024, 2),
+            "change": round((points[0][1] - points[-1][1]) / 1024, 2),
+            "percent_change": round(sum(_pct(cur, old) for (_, cur), (_, old) in pairs), 2),
+            "current_date": _php_date(points[0][0]),
+            "old_date": _php_date(points[-1][0]),
+        }]
+    return [
+        {
+            "chain_size": round(cur / 1024, 2),
+            "change": round((cur - old) / 1024, 2),
+            "percent_change": _pct(cur, old),
+            "date": _php_date(day),
+        }
+        for (day, cur), (_, old) in pairs
+    ]
+
+
 @router.get("/api/{path:path}")
 async def legacy_api(request: Request, path: str) -> Response:
     # Unknown /api/v1/... paths keep their 404 instead of the legacy error.
@@ -422,5 +479,8 @@ async def legacy_api(request: Request, path: str) -> Response:
             if pattern == "txt":
                 return PlainTextResponse(_amount(supply), media_type="text/html")
             return _Pretty({"coin_supply": float(Decimal(supply) / COIN)})
+        if subtype in CHARTS and pattern in ("30days", "60days"):
+            async with pool.acquire() as conn:
+                return _Pretty(await _chart(conn, subtype, pattern, parts[3]))
 
     return _Pretty(UNKNOWN)
