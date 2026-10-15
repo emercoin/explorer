@@ -38,6 +38,16 @@ def _field(data: bytes) -> dict[str, Any]:
     return {"text": text} if text is not None else {"text": None, "base64": base64.b64encode(data).decode()}
 
 
+def multisig_fields(addresses: list[str] | None, required: int | None) -> dict[str, Any]:
+    """Extra vout fields of a bare multisig output ("address" stays the first key's).
+
+    Shared with app.py, which imports this module.
+    """
+    if addresses is None:
+        return {}
+    return {"addresses": addresses, "required": required}
+
+
 def _fee(entry: dict[str, Any]) -> int:
     fee = entry.get("fee")
     if fee is None:
@@ -158,7 +168,8 @@ class Mempool:
                 "vin": vin,
                 "vout": [
                     {"n": o.n, "value": format_units(o.value), "type": o.script_type,
-                     "address": o.address, "script": o.script.hex(), "spent_by": None}
+                     "address": o.address, **multisig_fields(o.addresses, o.required),
+                     "script": o.script.hex(), "spent_by": None}
                     for o in tx.outputs
                 ],
                 "name_ops": [

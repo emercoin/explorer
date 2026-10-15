@@ -14,7 +14,7 @@ from fastapi import APIRouter, FastAPI, HTTPException, Query, Request
 from ..amounts import format_units
 from ..nvs import OP_NAMES, as_text
 from ..rpc import RpcClient
-from .mempool import Mempool, NodeUnavailable
+from .mempool import Mempool, NodeUnavailable, multisig_fields
 
 HEX64 = re.compile(r"^[0-9a-fA-F]{64}$")
 ADDRESS = re.compile(r"^[0-9A-Za-z]{20,100}$")
@@ -195,6 +195,7 @@ async def transaction(request: Request, txid: str) -> dict[str, Any]:
                 "value": format_units(o["value"]),
                 "type": o["script_type"],
                 "address": o["address"],
+                **multisig_fields(o["addresses"], o["required"]),
                 "script": o["script"].hex(),
                 "spent_by": (
                     {"txid": o["spent_txid"].hex(), "vin": o["spent_n"], "height": o["spent_height"]}
@@ -292,6 +293,42 @@ async def address_utxo(request: Request, address: str) -> list[dict[str, Any]]:
     )
     return [
         {"txid": r["txid"].hex(), "vout": r["n"], "value": format_units(r["value"]), "height": r["height"]}
+        for r in rows
+    ]
+
+
+@router.get("/addresses/{address}/multisig")
+async def address_multisig(
+    request: Request, address: str, limit: int = Query(100, ge=1, le=MAX_LIMIT)
+) -> list[dict[str, Any]]:
+    """Bare multisig outputs this address is one of the keys of, newest first.
+
+    Their value counts in the balance of the first key only (as "address" of the
+    output), so they are listed here instead of in the history of the others.
+    """
+    rows = await _pool(request).fetch(
+        """
+        SELECT txid, n, height, value, addresses, required, spent_txid, spent_height
+        FROM outputs
+        WHERE addresses @> ARRAY[$1::text] AND addresses IS NOT NULL
+        ORDER BY height DESC, txid, n
+        LIMIT $2
+        """,
+        _address(address),
+        limit,
+    )
+    return [
+        {
+            "txid": r["txid"].hex(),
+            "vout": r["n"],
+            "height": r["height"],
+            "value": format_units(r["value"]),
+            "addresses": r["addresses"],
+            "required": r["required"],
+            "spent_by": (
+                {"txid": r["spent_txid"].hex(), "height": r["spent_height"]} if r["spent_txid"] else None
+            ),
+        }
         for r in rows
     ]
 

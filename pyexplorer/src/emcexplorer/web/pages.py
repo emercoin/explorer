@@ -17,6 +17,7 @@ from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
+from ..amounts import format_units
 from ..api import app as api
 from .charts import Point, bar_chart, compact, line_chart
 
@@ -25,6 +26,7 @@ templates = Jinja2Templates(directory=str(files("emcexplorer.web").joinpath("tem
 static_files = StaticFiles(directory=str(files("emcexplorer.web").joinpath("static")))
 
 PAGE = 50
+MAX_MULTISIG = 100  # multisig outputs listed on an address page
 
 
 def _utc(ts: int | None) -> str:
@@ -148,11 +150,22 @@ async def mempool(request: Request) -> HTMLResponse:
 @router.get("/address/{address}", response_class=HTMLResponse)
 async def address(request: Request, address: str, before: str | None = None) -> HTMLResponse:
     try:
-        a = await api.address(request, address)
+        multisig = await api.address_multisig(request, address, limit=MAX_MULTISIG) if before is None else []
+        try:
+            a = await api.address(request, address)
+        except HTTPException as e:
+            if e.status_code != 404 or not multisig:
+                raise
+            # only a non-first key of multisig outputs: nothing is credited to it
+            zero = format_units(0)
+            a = {"address": address, "balance": zero, "received": zero, "sent": zero, "tx_count": 0,
+                 "first_height": None, "last_height": None}
         txs = await api.address_txs(request, address, before=before, limit=PAGE)
     except HTTPException as e:
         return await _error(request, e)
-    return await _render(request, "address.html", a=a, txs=txs, first_page=before is None)
+    return await _render(
+        request, "address.html", a=a, txs=txs, multisig=multisig, first_page=before is None
+    )
 
 
 @router.get("/names", response_class=HTMLResponse)

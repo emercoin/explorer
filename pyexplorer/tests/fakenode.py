@@ -73,6 +73,13 @@ class Out:
     addr: str | None
     script: bytes | None = None  # defaults to p2pkh(addr)
     type: str = "pubkeyhash"
+    keys: list[str] | None = None  # bare multisig: the address of every key
+    required: int = 1
+
+    @staticmethod
+    def multisig(value: str, keys: list[str], required: int = 1) -> Out:
+        script = bytes([0x50 + required]) + "|".join(keys).encode() + bytes([0x50 + len(keys), 0xAE])
+        return Out(value, keys[0], script=script, type="multisig", keys=keys, required=required)
 
 
 @dataclass
@@ -98,7 +105,10 @@ def render_tx(t: TxSpec, seed: str, time: int) -> dict[str, Any]:
     for n, o in enumerate(t.vout):
         script = o.script if o.script is not None else (p2pkh(o.addr) if o.addr else b"")
         spk: dict[str, Any] = {"asm": "", "hex": script.hex(), "type": o.type}
-        if o.addr:
+        if o.keys:
+            spk["reqSigs"] = o.required
+            spk["addresses"] = list(o.keys)
+        elif o.addr:
             spk["addresses"] = [o.addr]
         vout.append({"value": Decimal(o.value).quantize(Decimal("0.000001")), "n": n,
                      "scriptPubKey": spk})
@@ -244,6 +254,13 @@ class FakeNode:
                     if tx["txid"] == params[0]:
                         return tx
             raise _RpcFail(-5, "No such mempool or blockchain transaction")
+        if method == "decodescript":
+            for raw in [tx for b in blocks for tx in b["tx"]] + [r for r, _ in self.mempool.values()]:
+                for out in raw["vout"]:
+                    spk = out["scriptPubKey"]
+                    if spk["hex"] == params[0]:
+                        return {k: v for k, v in spk.items() if k != "hex"}
+            return {"asm": "", "type": "nonstandard"}
         raise _RpcFail(-32601, f"Method not found: {method}")
 
     def _one(self, req: dict[str, Any]) -> dict[str, Any]:

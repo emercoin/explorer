@@ -9,9 +9,31 @@
   <div><span>Sent, EMC</span><strong>{{ a.sent }}</strong></div>
   <div><span>Transactions</span><strong>{{ a.tx_count }}</strong></div>
 </section>
+{% if a.first_height is not none %}
 <p class="muted">First seen in block <a href="/block/{{ a.first_height }}">{{ a.first_height }}</a>,
 last in <a href="/block/{{ a.last_height }}">{{ a.last_height }}</a>.
 Unspent outputs: <a href="/api/v1/addresses/{{ a.address }}/utxo">JSON</a>.</p>
+{% endif %}
+
+{% if multisig %}
+<h2>Multisig outputs</h2>
+<p class="muted">Outputs locked to several keys, this address among them. Their value counts in the
+balance of the first key only.</p>
+<div class="scroll"><table class="list">
+  <thead><tr><th>Block</th><th>Output</th><th>Keys</th><th class="num">Value, EMC</th></tr></thead>
+  <tbody>
+  {% for m in multisig %}
+    <tr>
+      <td><a href="/block/{{ m.height }}">{{ m.height }}</a></td>
+      <td class="mono"><a href="/tx/{{ m.txid }}">{{ m.txid | short(12) }}:{{ m.vout }}</a>
+        <br><span class="small muted">{% if m.spent_by %}spent{% else %}unspent{% endif %}</span></td>
+      <td class="small">{{ m.required }} of {{ m.addresses | length }}</td>
+      <td class="num">{{ m.value }}</td>
+    </tr>
+  {% endfor %}
+  </tbody>
+</table></div>
+{% endif %}
 
 <h2>Transactions</h2>
 <div class="scroll"><table class="list">

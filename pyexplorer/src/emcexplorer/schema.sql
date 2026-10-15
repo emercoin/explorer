@@ -64,8 +64,16 @@ CREATE TABLE IF NOT EXISTS outputs (
     spent_txid   BYTEA,
     spent_n      INTEGER,
     spent_height INTEGER,
+    addresses    TEXT[],                    -- bare multisig: the address of every key, else NULL
+    required     SMALLINT,                  -- bare multisig: signatures needed
     PRIMARY KEY (txid, n)
 );
+-- Added after the first release; filled for older blocks by the indexer
+-- (store.backfill_multisig).
+ALTER TABLE outputs ADD COLUMN IF NOT EXISTS addresses TEXT[];
+ALTER TABLE outputs ADD COLUMN IF NOT EXISTS required SMALLINT;
+CREATE INDEX IF NOT EXISTS outputs_multisig_addresses
+    ON outputs USING gin (addresses) WHERE addresses IS NOT NULL;
 CREATE INDEX IF NOT EXISTS outputs_unspent_by_address
     ON outputs (address) WHERE spent_txid IS NULL AND address IS NOT NULL;
 CREATE INDEX IF NOT EXISTS outputs_spent_height ON outputs (spent_height) WHERE spent_height IS NOT NULL;
