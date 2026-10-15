@@ -294,6 +294,77 @@ async def address_utxo(request: Request, address: str) -> list[dict[str, Any]]:
     ]
 
 
+def _day(row: asyncpg.Record) -> dict[str, Any]:
+    return {
+        "date": row["day"].isoformat(),
+        "first_height": row["first_height"],
+        "last_height": row["last_height"],
+        "blocks": row["blocks"],
+        "pos_blocks": row["pos_blocks"],
+        "size": row["size"],
+        "chain_size": row["chain_size"],
+        "txs": row["txs"],
+        "payments": row["payments"],
+        "volume": format_units(row["volume"]),
+        "fees": format_units(row["fees"]),
+        "mint": format_units(row["mint"]),
+        "supply": format_units(row["supply"]),
+        "difficulty_pow": str(row["difficulty_pow"]) if row["difficulty_pow"] is not None else None,
+        "difficulty_pos": str(row["difficulty_pos"]) if row["difficulty_pos"] is not None else None,
+        "new_addresses": row["new_addresses"],
+        "known_addresses": row["known_addresses"],
+        "active_addresses": row["active_addresses"],
+        "funded_addresses": row["funded_addresses"],
+    }
+
+
+async def daily_rows(conn: asyncpg.Connection, days: int) -> list[asyncpg.Record]:
+    """The last `days` rows of daily_stats, newest first, with running totals."""
+    return await conn.fetch(
+        """
+        SELECT * FROM (
+            SELECT *, (sum(size) OVER w)::bigint AS chain_size,
+                   (sum(new_addresses) OVER w)::bigint AS known_addresses
+            FROM daily_stats WINDOW w AS (ORDER BY day)
+        ) d ORDER BY day DESC LIMIT $1
+        """,
+        days,
+    )
+
+
+@router.get("/stats/daily")
+async def stats_daily(request: Request, days: int = Query(30, ge=1, le=10000)) -> list[dict[str, Any]]:
+    """Per-day totals (UTC days by block time), newest first. The current day is partial."""
+    async with _pool(request).acquire() as conn:
+        return [_day(r) for r in await daily_rows(conn, days)]
+
+
+@router.get("/stats/summary")
+async def stats_summary(request: Request) -> dict[str, Any]:
+    async with _pool(request).acquire() as conn:
+        tip = await conn.fetchrow("SELECT height, time, supply FROM blocks ORDER BY height DESC LIMIT 1")
+        totals = await conn.fetchrow(
+            """
+            SELECT sum(txs)::bigint AS txs, sum(payments)::bigint AS payments,
+                   sum(new_addresses)::bigint AS addresses, sum(size)::bigint AS chain_size,
+                   (SELECT funded_addresses FROM daily_stats ORDER BY day DESC LIMIT 1) AS funded
+            FROM daily_stats
+            """
+        )
+    if tip is None:
+        raise HTTPException(404, "nothing indexed yet")
+    return {
+        "height": tip["height"],
+        "time": tip["time"],
+        "supply": format_units(tip["supply"]),
+        "txs": totals["txs"],
+        "payments": totals["payments"],
+        "known_addresses": totals["addresses"],
+        "funded_addresses": totals["funded"],
+        "chain_size": totals["chain_size"],
+    }
+
+
 @router.get("/richlist")
 async def richlist(request: Request, limit: int = Query(100, ge=1, le=MAX_LIMIT)) -> list[dict[str, Any]]:
     rows = await _pool(request).fetch(

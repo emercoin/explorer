@@ -115,7 +115,7 @@ async def test_legacy_address_and_stats(api):
     assert (await api.get("/api/stats/block_height")).json() == {"block_height": "3"}
     assert (await api.get("/api/stats/coin_supply")).json() == {"coin_supply": 210.97}  # fees are burned
     assert (await api.get("/api/stats/coin_supply/txt")).text == "210.97"
-    assert (await api.get("/api/stats/known_addresses/30days")).json() == {"error": "Unknown API call"}
+    assert (await api.get("/api/stats/nonsense/30days")).json() == {"error": "Unknown API call"}
 
 
 async def test_legacy_help_and_routing(api):

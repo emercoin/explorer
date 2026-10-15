@@ -89,8 +89,11 @@ class ChainBuilder:
     tag: str
     blocks: list[dict[str, Any]] = field(default_factory=list)
 
-    def add_block(self, txs: list[TxSpec], *, pos: bool = False, mint: str = "0") -> dict[str, Any]:
+    def add_block(
+        self, txs: list[TxSpec], *, pos: bool = False, mint: str = "0", time: int | None = None
+    ) -> dict[str, Any]:
         height = len(self.blocks)
+        btime = 1_500_000_000 + height * 600 if time is None else time
         prev = self.blocks[-1]["hash"] if self.blocks else None
         bhash = h(f"{self.tag}-block-{height}")
         rendered = []
@@ -112,12 +115,12 @@ class ChainBuilder:
                 vout.append({"value": Decimal(o.value).quantize(Decimal("0.000001")), "n": n,
                              "scriptPubKey": spk})
             rendered.append({"txid": txid, "hash": txid, "version": t.version, "size": 200,
-                             "locktime": 0, "time": 1_500_000_000 + height * 600,
+                             "locktime": 0, "time": btime,
                              "vin": vin, "vout": vout})
         block = {
             "hash": bhash, "confirmations": 1, "size": 1000, "height": height, "version": 1,
             "merkleroot": h(f"{self.tag}-mr-{height}"), "tx": rendered,
-            "time": 1_500_000_000 + height * 600, "mediantime": 1_500_000_000 + height * 600,
+            "time": btime, "mediantime": btime,
             "nonce": 0, "bits": "1d00ffff", "difficulty": Decimal("1.5"),
             "mint": Decimal(mint).quantize(Decimal("0.000001")),
             "flags": "proof-of-stake" if pos else "proof-of-work",

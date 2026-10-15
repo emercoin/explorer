@@ -94,6 +94,7 @@ TABLES = {
     "name_ops": "txid, n",
     "names": "name",
     "names_dirty": "name",
+    "daily_stats": "day",
 }
 
 
