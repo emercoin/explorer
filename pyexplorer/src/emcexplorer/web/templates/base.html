@@ -35,6 +35,7 @@
   The index is empty.
   {% endif %}
   · <a href="/docs">API</a>
+  {% if build.commit %}· {{ build.version }} <a class="mono" href="https://github.com/emercoin/explorer/commit/{{ build.commit }}">{{ build.commit[:7] }}</a>{% endif %}
 </footer>
 </body>
 </html>
