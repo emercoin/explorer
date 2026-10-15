@@ -112,8 +112,23 @@ async def tx(request: Request, txid: str) -> HTMLResponse:
     try:
         t = await api.transaction(request, txid)
     except HTTPException as e:
-        return await _error(request, e)
+        if e.status_code != 404:
+            return await _error(request, e)
+        # not in a block yet? then maybe in the node's memory pool
+        try:
+            t = await api.mempool_tx(request, txid)
+        except HTTPException:
+            return await _error(request, e)
     return await _render(request, "tx.html", t=t)
+
+
+@router.get("/mempool", response_class=HTMLResponse)
+async def mempool(request: Request) -> HTMLResponse:
+    try:
+        pool = await api.mempool(request, limit=100)
+    except HTTPException as e:
+        return await _error(request, e)
+    return await _render(request, "mempool.html", pool=pool)
 
 
 @router.get("/address/{address}", response_class=HTMLResponse)

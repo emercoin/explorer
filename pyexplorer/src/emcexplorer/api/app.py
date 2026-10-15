@@ -13,6 +13,8 @@ from fastapi import APIRouter, FastAPI, HTTPException, Query, Request
 
 from ..amounts import format_units
 from ..nvs import OP_NAMES, as_text
+from ..rpc import RpcClient
+from .mempool import Mempool, NodeUnavailable
 
 HEX64 = re.compile(r"^[0-9a-fA-F]{64}$")
 ADDRESS = re.compile(r"^[0-9A-Za-z]{20,100}$")
@@ -365,6 +367,35 @@ async def stats_summary(request: Request) -> dict[str, Any]:
     }
 
 
+MEMPOOL_SUMMARY = ("txid", "time", "size", "fee", "value_in", "value_out", "depends")
+
+
+@router.get("/mempool")
+async def mempool(request: Request, limit: int = Query(50, ge=1, le=100)) -> dict[str, Any]:
+    """Unconfirmed transactions, newest first (decoded: the newest 100). Up to 10 s old."""
+    try:
+        snap = await request.app.state.mempool.snapshot(_pool(request))
+    except NodeUnavailable as e:
+        raise HTTPException(503, str(e)) from None
+    return {
+        "count": snap["count"],
+        "bytes": snap["bytes"],
+        "txs": [{k: t[k] for k in MEMPOOL_SUMMARY} for t in snap["txs"][:limit]],
+    }
+
+
+@router.get("/mempool/{txid}")
+async def mempool_tx(request: Request, txid: str) -> dict[str, Any]:
+    key = _hash(txid).hex()
+    try:
+        tx = await request.app.state.mempool.transaction(_pool(request), key)
+    except NodeUnavailable as e:
+        raise HTTPException(503, str(e)) from None
+    if tx is None:
+        raise HTTPException(404, "transaction not in the memory pool")
+    return {k: v for k, v in tx.items() if k != "height"}
+
+
 @router.get("/richlist")
 async def richlist(request: Request, limit: int = Query(100, ge=1, le=MAX_LIMIT)) -> list[dict[str, Any]]:
     rows = await _pool(request).fetch(
@@ -467,8 +498,17 @@ async def search(request: Request, q: str = Query(..., min_length=1, max_length=
     raise HTTPException(404, "nothing found")
 
 
-def create_app(dsn: str | None = None, pool: asyncpg.Pool | None = None) -> FastAPI:
-    """Pass `dsn` to let the app own its pool, or an existing `pool` (tests)."""
+def create_app(
+    dsn: str | None = None,
+    pool: asyncpg.Pool | None = None,
+    rpc_url: str | None = None,
+    rpc: RpcClient | None = None,
+) -> FastAPI:
+    """Pass `dsn` to let the app own its pool, or an existing `pool` (tests).
+
+    The node's RPC (`rpc_url`, or a ready `rpc` client) is only used for the
+    memory pool; without it /mempool answers 503 and the rest works as before.
+    """
 
     @asynccontextmanager
     async def lifespan(app: FastAPI):
@@ -477,10 +517,15 @@ def create_app(dsn: str | None = None, pool: asyncpg.Pool | None = None) -> Fast
             yield
             return
         app.state.pool = await asyncpg.create_pool(dsn, min_size=1, max_size=10)
+        own_rpc = RpcClient(rpc_url, timeout=10.0) if rpc_url and rpc is None else None
+        if own_rpc is not None:
+            app.state.mempool = Mempool(own_rpc)
         try:
             yield
         finally:
             await app.state.pool.close()
+            if own_rpc is not None:
+                await own_rpc.close()
 
     # Imported here: the pages module builds on the handlers of this one.
     from ..web.pages import router as pages_router
@@ -488,6 +533,7 @@ def create_app(dsn: str | None = None, pool: asyncpg.Pool | None = None) -> Fast
     from .legacy import router as legacy_router
 
     app = FastAPI(title="Emercoin explorer API", version="1", lifespan=lifespan)
+    app.state.mempool = Mempool(rpc)
     if pool is not None:
         app.state.pool = pool
     app.include_router(router)
