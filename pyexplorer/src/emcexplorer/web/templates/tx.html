@@ -4,10 +4,15 @@
 <h1>Transaction</h1>
 <p class="mono wrap">{{ t.txid }}</p>
 <dl class="kv">
+  {% if t.height is defined and t.height is not none %}
   <dt>Block</dt><dd><a href="/block/{{ t.height }}">{{ t.height }}</a> · {{ t.confirmations }} confirmations</dd>
   <dt>Time</dt><dd>{{ t.time | utc }} UTC ({{ t.time | ago }})</dd>
+  {% else %}
+  <dt>Block</dt><dd><span class="tag pow">unconfirmed</span> in the <a href="/mempool">memory pool</a></dd>
+  <dt>Received</dt><dd>{{ t.time | utc }} UTC ({{ t.time | ago }})</dd>
+  {% endif %}
   <dt>Type</dt><dd>{% if t.coinbase %}coinbase{% elif t.coinstake %}coinstake{% else %}regular{% endif %}</dd>
-  <dt>Input / output</dt><dd>{{ t.value_in }} / {{ t.value_out }} EMC</dd>
+  <dt>Input / output</dt><dd>{{ t.value_in if t.value_in is not none else "?" }} / {{ t.value_out }} EMC</dd>
   <dt>Fee</dt><dd>{{ t.fee }} EMC</dd>
   <dt>Size</dt><dd>{{ t.size }} bytes · version {{ t.version }} · locktime {{ t.locktime }}</dd>
 </dl>
@@ -46,7 +51,7 @@
               <br><a class="mono small" href="/tx/{{ i.txid }}">{{ i.txid | short(8) }}:{{ i.vout }}</a>
             {% endif %}
           </td>
-          <td class="num">{{ i.value }}</td>
+          <td class="num">{{ i.value if i.value is not none else "?" }}</td>
         </tr>
       {% endfor %}
       </tbody>
@@ -61,7 +66,7 @@
           <td>{{ o.n }}</td>
           <td class="wrap">
             {% if o.address %}<a class="mono" href="/address/{{ o.address }}">{{ o.address }}</a>{% else %}<span class="muted">{{ o.type or "nonstandard" }}</span>{% endif %}
-            {% if o.spent_by %}<br><a class="small" href="/tx/{{ o.spent_by.txid }}">spent in block {{ o.spent_by.height }}</a>{% else %}<br><span class="small muted">unspent</span>{% endif %}
+            {% if o.spent_by %}<br><a class="small" href="/tx/{{ o.spent_by.txid }}">spent in block {{ o.spent_by.height }}</a>{% elif t.height is defined and t.height is not none %}<br><span class="small muted">unspent</span>{% endif %}
           </td>
           <td class="num">{{ o.value }}</td>
         </tr>

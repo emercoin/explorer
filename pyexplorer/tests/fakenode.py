@@ -84,6 +84,28 @@ class TxSpec:
     coinbase: bool = False
 
 
+def render_tx(t: TxSpec, seed: str, time: int) -> dict[str, Any]:
+    """The node's JSON for a transaction (as in getblock 2 / getrawtransaction 1)."""
+    txid = t.txid or h(seed)
+    t.txid = txid
+    vin = (
+        [{"coinbase": "0400", "sequence": 4294967295}]
+        if t.coinbase
+        else [{"txid": a, "vout": n, "scriptSig": {"asm": "", "hex": ""}, "sequence": 4294967295}
+              for a, n in t.vin]
+    )
+    vout = []
+    for n, o in enumerate(t.vout):
+        script = o.script if o.script is not None else (p2pkh(o.addr) if o.addr else b"")
+        spk: dict[str, Any] = {"asm": "", "hex": script.hex(), "type": o.type}
+        if o.addr:
+            spk["addresses"] = [o.addr]
+        vout.append({"value": Decimal(o.value).quantize(Decimal("0.000001")), "n": n,
+                     "scriptPubKey": spk})
+    return {"txid": txid, "hash": txid, "version": t.version, "size": 200,
+            "locktime": 0, "time": time, "vin": vin, "vout": vout}
+
+
 @dataclass
 class ChainBuilder:
     tag: str
@@ -96,27 +118,7 @@ class ChainBuilder:
         btime = 1_500_000_000 + height * 600 if time is None else time
         prev = self.blocks[-1]["hash"] if self.blocks else None
         bhash = h(f"{self.tag}-block-{height}")
-        rendered = []
-        for i, t in enumerate(txs):
-            txid = t.txid or h(f"{self.tag}-{height}-{i}")
-            t.txid = txid
-            vin = (
-                [{"coinbase": "0400", "sequence": 4294967295}]
-                if t.coinbase
-                else [{"txid": a, "vout": n, "scriptSig": {"asm": "", "hex": ""}, "sequence": 4294967295}
-                      for a, n in t.vin]
-            )
-            vout = []
-            for n, o in enumerate(t.vout):
-                script = o.script if o.script is not None else (p2pkh(o.addr) if o.addr else b"")
-                spk: dict[str, Any] = {"asm": "", "hex": script.hex(), "type": o.type}
-                if o.addr:
-                    spk["addresses"] = [o.addr]
-                vout.append({"value": Decimal(o.value).quantize(Decimal("0.000001")), "n": n,
-                             "scriptPubKey": spk})
-            rendered.append({"txid": txid, "hash": txid, "version": t.version, "size": 200,
-                             "locktime": 0, "time": btime,
-                             "vin": vin, "vout": vout})
+        rendered = [render_tx(t, f"{self.tag}-{height}-{i}", btime) for i, t in enumerate(txs)]
         block = {
             "hash": bhash, "confirmations": 1, "size": 1000, "height": height, "version": 1,
             "merkleroot": h(f"{self.tag}-mr-{height}"), "tx": rendered,
@@ -148,8 +150,15 @@ def _dumps(obj: Any, ensure_ascii: bool = True) -> str:
 class FakeNode:
     def __init__(self, chain: ChainBuilder):
         self.chain = chain
+        # txid -> (rendered tx, fee): what getrawmempool / getrawtransaction serve
+        self.mempool: dict[str, tuple[dict[str, Any], str]] = {}
         self._switch: tuple[str, int, ChainBuilder] | None = None
         self._calls = 0
+
+    def add_to_mempool(self, t: TxSpec, fee: str, time: int) -> str:
+        raw = render_tx(t, f"pool-{len(self.mempool)}", time)
+        self.mempool[raw["txid"]] = (raw, fee)
+        return raw["txid"]
 
     def switch_after(self, method: str, n: int, chain: ChainBuilder) -> None:
         """Serve n more `method` calls from the current chain, then switch to `chain`."""
@@ -219,6 +228,22 @@ class FakeNode:
             return block
         if method == "name_show":
             return self._name_show(params[0])
+        if method == "getrawmempool":
+            assert params == [True], "only the verbose form is served"
+            return {
+                txid: {"size": raw["size"], "vsize": raw["size"], "fee": Decimal(fee),
+                       "fees": {"base": Decimal(fee)}, "time": raw["time"],
+                       "depends": [i["txid"] for i in raw["vin"] if i.get("txid") in self.mempool]}
+                for txid, (raw, fee) in self.mempool.items()
+            }
+        if method == "getrawtransaction":
+            if params[0] in self.mempool:
+                return self.mempool[params[0]][0]
+            for b in blocks:
+                for tx in b["tx"]:
+                    if tx["txid"] == params[0]:
+                        return tx
+            raise _RpcFail(-5, "No such mempool or blockchain transaction")
         raise _RpcFail(-32601, f"Method not found: {method}")
 
     def _one(self, req: dict[str, Any]) -> dict[str, Any]:

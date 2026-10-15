@@ -68,7 +68,8 @@ def main() -> None:
 
         from .api.app import create_app
 
-        uvicorn.run(create_app(dsn=_database_url()), host=args.host, port=args.port)
+        app = create_app(dsn=_database_url(), rpc_url=os.environ.get("EMC_RPC_URL"))
+        uvicorn.run(app, host=args.host, port=args.port)
 
 
 if __name__ == "__main__":
