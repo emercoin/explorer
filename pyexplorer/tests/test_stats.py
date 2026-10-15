@@ -112,3 +112,14 @@ async def test_static_urls_are_versioned(api):
     # without the stylesheet the hit areas must stay transparent, not black
     assert '<rect class="hit" fill="transparent"' in page
     assert (await api.get("/static/style.css?v=whatever")).status_code == 200
+
+
+async def test_cache_headers(api):
+    v = (await api.get("/stats")).text.split("style.css?v=")[1].split('"')[0]
+    css = await api.get(f"/static/style.css?v={v}")
+    assert css.headers["cache-control"] == "public, max-age=31536000, immutable"
+    assert (await api.get("/static/style.css")).headers["cache-control"] == "public, max-age=300"
+    assert (await api.get("/api/v1/status")).headers["cache-control"] == "public, max-age=10"
+    assert (await api.get("/api/stats/block_height")).headers["cache-control"] == "public, max-age=10"
+    assert "cache-control" not in (await api.get("/stats")).headers  # pages: browser default
+    assert (await api.get("/api/v1/mempool")).headers["cache-control"] == "no-store"  # 503, no node here

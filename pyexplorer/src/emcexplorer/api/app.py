@@ -498,6 +498,25 @@ async def search(request: Request, q: str = Query(..., min_length=1, max_length=
     raise HTTPException(404, "nothing found")
 
 
+API_MAX_AGE = 10  # seconds: a new block arrives about every 10 minutes
+
+
+def cache_policy(path: str, query: str, status: int) -> str | None:
+    """Cache-Control for a response (None leaves the default).
+
+    Static files linked with ?v=<hash> never change under that URL. API answers
+    may be reused for a few seconds by browsers and by Cloudflare if it is told
+    to cache them; errors from the node or the database are never kept.
+    """
+    if status >= 500:
+        return "no-store"
+    if path.startswith("/static/"):
+        return "public, max-age=31536000, immutable" if query.startswith("v=") else "public, max-age=300"
+    if path.startswith("/api/"):
+        return f"public, max-age={API_MAX_AGE}"
+    return None
+
+
 def create_app(
     dsn: str | None = None,
     pool: asyncpg.Pool | None = None,
@@ -540,4 +559,14 @@ def create_app(
     app.include_router(legacy_router)  # after /api/v1, its catch-all must not shadow it
     app.include_router(pages_router)
     app.mount("/static", static_files, name="static")
+
+    @app.middleware("http")
+    async def cache_headers(request: Request, call_next):
+        response = await call_next(request)
+        if "cache-control" not in response.headers:
+            policy = cache_policy(request.url.path, request.url.query, response.status_code)
+            if policy:
+                response.headers["cache-control"] = policy
+        return response
+
     return app
