@@ -50,7 +50,7 @@ async def test_mempool_tx_and_page(api, node):
     tx = (await api.get(f"/api/v1/mempool/{second}")).json()
     # the input comes from another pooled transaction
     assert tx["vin"][0] == {"n": 0, "coinbase": None, "txid": first, "vout": 0, "randpay": False,
-                            "value": "50.000000", "address": D_}
+                            "value": "50.000000", "address": D_, "name": None}
     assert tx["vout"][0]["address"] == C_ and tx["vout"][0]["spent_by"] is None
     assert (await api.get("/api/v1/mempool/" + "0" * 64)).status_code == 404
     assert (await api.get("/api/v1/mempool/xyz")).status_code == 400

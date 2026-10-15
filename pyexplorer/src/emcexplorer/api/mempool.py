@@ -112,23 +112,28 @@ class Mempool:
                 continue  # mined or evicted since getrawmempool
             txs.append((parse_tx(raw, 0), entry))
 
-        # values and addresses of the outputs these transactions spend
+        # values, addresses and names of the outputs these transactions spend
         keys = [(i.prev_txid, i.prev_n) for tx, _ in txs for i in tx.inputs if i.spends_output]
         prev: dict[tuple[bytes, int], tuple[int, str | None]] = {}
+        prev_names: dict[tuple[bytes, int], bytes] = {}
         if keys:
             rows = await pool.fetch(
                 """
-                SELECT o.txid, o.n, o.value, o.address
+                SELECT o.txid, o.n, o.value, o.address, nm.name
                 FROM outputs o JOIN unnest($1::bytea[], $2::int[]) AS k(txid, n)
                   ON o.txid = k.txid AND o.n = k.n
+                LEFT JOIN name_ops nm ON nm.txid = o.txid AND nm.n = o.n
                 """,
                 [k[0] for k in keys],
                 [k[1] for k in keys],
             )
             prev = {(r["txid"], r["n"]): (r["value"], r["address"]) for r in rows}
+            prev_names = {(r["txid"], r["n"]): r["name"] for r in rows if r["name"] is not None}
         for tx, _ in txs:  # outputs of other pooled transactions
             for o in tx.outputs:
                 prev.setdefault((tx.txid, o.n), (o.value, o.address))
+            for no in tx.name_ops:
+                prev_names.setdefault((tx.txid, no.n), no.op.name)
 
         result = []
         for tx, entry in txs:
@@ -150,8 +155,10 @@ class Mempool:
                     "randpay": i.is_randpay,
                     "value": format_units(value) if value is not None else None,
                     "address": address,
+                    "name": _field(name) if (name := prev_names.get((i.prev_txid, i.prev_n))) else None,
                 })
             value_out = sum(o.value for o in tx.outputs)
+            out_names = {no.n: _field(no.op.name) for no in tx.name_ops}
             result.append({
                 "txid": tx.txid.hex(),
                 "height": None,
@@ -169,7 +176,7 @@ class Mempool:
                 "vout": [
                     {"n": o.n, "value": format_units(o.value), "type": o.script_type,
                      "address": o.address, **multisig_fields(o.addresses, o.required),
-                     "script": o.script.hex(), "spent_by": None}
+                     "script": o.script.hex(), "name": out_names.get(o.n), "spent_by": None}
                     for o in tx.outputs
                 ],
                 "name_ops": [
