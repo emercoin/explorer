@@ -8,8 +8,10 @@
 # schema migration, then recreates indexer and api. The node, PostgreSQL and Caddy
 # are left running unless their compose definition changed.
 #
-# Hardening: pin the CI key to this script in ~/.ssh/authorized_keys, e.g.
-#   command="/opt/explorer/pyexplorer/deploy/deploy-service.sh ${SSH_ORIGINAL_COMMAND##* }",no-pty,no-port-forwarding,no-agent-forwarding,no-X11-forwarding ssh-ed25519 AAAA... explorer-ci
+# The CI key is pinned to this script in ~/.ssh/authorized_keys of the deploy user:
+#   command="/opt/explorer/pyexplorer/deploy/deploy-service.sh ${SSH_ORIGINAL_COMMAND##* }",restrict ssh-ed25519 AAAA... explorer-ci
+# sshd then runs only this script and passes it the last word the client sent
+# (the tag), which the check below validates.
 set -euo pipefail
 
 tag="${1:-}"
