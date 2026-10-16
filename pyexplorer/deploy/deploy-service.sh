@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Release rollout, invoked by CI over SSH after it has pushed emercoin/explorer:<tag>
+# Release rollout, invoked by CI over SSH after it has pushed ghcr.io/emercoin/explorer:<tag>
 # (see .github/workflows/explorer-release.yml):
 #
 #   bash /opt/explorer/pyexplorer/deploy/deploy-service.sh v0.2.0
@@ -8,8 +8,10 @@
 # schema migration, then recreates indexer and api. The node, PostgreSQL and Caddy
 # are left running unless their compose definition changed.
 #
-# Hardening: pin the CI key to this script in ~/.ssh/authorized_keys, e.g.
-#   command="/opt/explorer/pyexplorer/deploy/deploy-service.sh ${SSH_ORIGINAL_COMMAND##* }",no-pty,no-port-forwarding,no-agent-forwarding,no-X11-forwarding ssh-ed25519 AAAA... explorer-ci
+# The CI key is pinned to this script in ~/.ssh/authorized_keys of the deploy user:
+#   command="/opt/explorer/pyexplorer/deploy/deploy-service.sh ${SSH_ORIGINAL_COMMAND##* }",restrict ssh-ed25519 AAAA... explorer-ci
+# sshd then runs only this script and passes it the last word the client sent
+# (the tag), which the check below validates.
 set -euo pipefail
 
 tag="${1:-}"
@@ -36,7 +38,10 @@ COMPOSE=(docker compose --env-file .env)
 "${COMPOSE[@]}" up -d --no-build --remove-orphans
 # The Caddyfile is a single-file bind mount: checkout replaces its inode and the
 # running container would keep the old file, so recreate Caddy when it changed.
-if grep -q '^pyexplorer/deploy/Caddyfile$' <<<"$changed"; then
+# Only if it runs: naming a service switches its profile on, and a host that
+# disables Caddy in the override (another web server on :80) must keep it off.
+if grep -q '^pyexplorer/deploy/Caddyfile$' <<<"$changed" &&
+  [ -n "$("${COMPOSE[@]}" ps -q caddy 2>/dev/null)" ]; then
   "${COMPOSE[@]}" up -d --no-build --force-recreate caddy
 fi
 docker image prune -f

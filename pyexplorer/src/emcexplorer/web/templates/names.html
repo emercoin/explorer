@@ -3,25 +3,34 @@
 {% block content %}
 <h1>Names (NVS)</h1>
 <form class="filter" action="/names" method="get">
+  <input type="hidden" name="sort" value="{{ sort }}">
   <input type="text" name="prefix" value="{{ prefix }}" placeholder="Prefix, e.g. dns:" aria-label="Name prefix">
   <label><input type="checkbox" name="inactive" value="true" {% if inactive %}checked{% endif %}> include expired and deleted</label>
   <button type="submit">Filter</button>
 </form>
+{% set query = "prefix=" ~ (prefix | urlencode) ~ ("&inactive=true" if inactive else "") %}
+<p class="sort">Order:
+  {% if sort == "new" %}<strong>last changed first</strong> · <a href="/names?{{ query }}&amp;sort=name">A–Z</a>
+  {% else %}<a href="/names?{{ query }}&amp;sort=new">last changed first</a> · <strong>A–Z</strong>{% endif %}
+</p>
 <div class="scroll"><table class="list">
-  <thead><tr><th>Name</th><th>Value</th><th class="num">Expires in, blocks</th></tr></thead>
+  <thead><tr><th>Name</th><th>Value</th><th>Changed</th><th>Status</th></tr></thead>
   <tbody>
   {% for n in res['items'] %}
-    <tr{% if not n.active %} class="muted"{% endif %}>
-      <td class="wrap">{% set url = n.name | name_url %}{% if url %}<a href="{{ url }}">{{ n.name | field }}</a>{% else %}{{ n.name | field }}{% endif %}</td>
+    {% set status, cls = n | name_status %}
+    <tr>
+      {% set text = n.name | name %}{% set short = text | truncate(80, true, "…", 0) %}
+      <td class="wrap"{% if short != text %} title="{{ text }}"{% endif %}>{% set url = n.name | name_url %}{% if url %}<a class="{{ cls }}" href="{{ url }}">{{ short }}</a>{% else %}<span class="{{ cls }}">{{ short }}</span>{% endif %}</td>
       <td class="wrap value">{{ n.value | field | truncate(120) }}</td>
-      <td class="num">{% if n.deleted %}deleted{% else %}{{ n.expires_in }}{% endif %}</td>
+      <td class="nowrap" title="{{ n.time | utc }} UTC">{{ n.time | ago }}</td>
+      <td class="small {{ cls }}">{{ status }}</td>
     </tr>
   {% else %}
-    <tr><td colspan="3" class="muted">No names match.</td></tr>
+    <tr><td colspan="4" class="muted">No names match.</td></tr>
   {% endfor %}
   </tbody>
 </table></div>
 <nav class="pager">
-  {% if res.next %}<a href="/names?prefix={{ prefix | urlencode }}&amp;after={{ res.next | urlencode }}{% if inactive %}&amp;inactive=true{% endif %}">Next →</a>{% endif %}
+  {% if res.next %}<a href="/names?{{ query }}&amp;sort={{ sort }}&amp;after={{ res.next | urlencode }}">Next →</a>{% endif %}
 </nav>
 {% endblock %}

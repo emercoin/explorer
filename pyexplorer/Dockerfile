@@ -29,6 +29,11 @@ ENV PATH=/app/.venv/bin:$PATH \
     PYTHONUNBUFFERED=1
 RUN useradd --system --uid 10001 --no-create-home explorer
 COPY --from=build /app/.venv /app/.venv
+# Set by the release workflow; the site shows them in the footer.
+ARG EXPLORER_VERSION=""
+ARG EXPLORER_COMMIT=""
+ENV EXPLORER_VERSION=$EXPLORER_VERSION \
+    EXPLORER_COMMIT=$EXPLORER_COMMIT
 USER explorer
 EXPOSE 8000
 ENTRYPOINT ["emcexplorer"]

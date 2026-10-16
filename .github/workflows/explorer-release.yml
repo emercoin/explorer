@@ -1,12 +1,21 @@
-# Release of the Python explorer: push a tag vX.Y.Z (must equal the version in
-# pyexplorer/pyproject.toml).
+# Release of the Python explorer, started any of these ways:
+#   * push a tag vX.Y.Z (must equal the version in pyexplorer/pyproject.toml);
+#   * run the workflow by hand (Actions -> explorer release -> Run workflow, or
+#     the API) on a branch: once the image is pushed it tags the branch head
+#     with the version from pyproject.toml; fails early if that tag exists;
+#   * push (merge) to develop touching pyexplorer/: the build gets the tag
+#     vX.Y.Z-dev.N (N = run number) and the image X.Y.Z-dev.N and :develop,
+#     never :latest.
 #
 #   1. tests (explorer-ci.yml)
-#   2. build and push emercoin/explorer:X.Y.Z and :latest to Docker Hub
+#   2. build and push ghcr.io/emercoin/explorer:X.Y.Z and :latest (or :develop)
 #   3. over SSH run pyexplorer/deploy/deploy-service.sh vX.Y.Z on the server
 #
-# Repository secrets:
-#   DOCKERHUB_USERNAME, DOCKERHUB_TOKEN   write access to emercoin/explorer on Docker Hub
+# The image goes to GitHub Container Registry with the workflow's own token, so
+# it needs no registry secrets. Make the package public once (Packages ->
+# explorer -> Package settings -> Change visibility), or the server has to
+# `docker login ghcr.io` before it can pull.
+#
 # Environment "production" secrets (Settings -> Environments; add reviewers there
 # if a human should approve each rollout):
 #   DEPLOY_HOST          server address, e.g. explorer3.emercoin.com
@@ -18,9 +27,18 @@ name: explorer release
 on:
   push:
     tags: ["v*"]
+    branches: [develop]
+    paths: ["pyexplorer/**"]   # not applied to tag pushes
+  workflow_dispatch:
+
+# Runs for one ref go one after another, so a slower older build of develop
+# cannot roll out over a newer one.
+concurrency:
+  group: explorer-release-${{ github.ref }}
+  cancel-in-progress: false
 
 env:
-  IMAGE: emercoin/explorer
+  IMAGE: ghcr.io/emercoin/explorer
 
 jobs:
   test:
@@ -29,6 +47,9 @@ jobs:
   publish:
     needs: test
     runs-on: ubuntu-latest
+    permissions:
+      contents: write   # push the tag when building a branch
+      packages: write   # push the image to ghcr.io
     outputs:
       version: ${{ steps.ver.outputs.version }}
     steps:
@@ -37,29 +58,53 @@ jobs:
       - name: Check the tag matches pyproject.toml
         id: ver
         run: |
-          tag="${GITHUB_REF_NAME#v}"
           ver=$(grep -oP '^version = "\K[^"]+' pyexplorer/pyproject.toml)
-          if [ "$tag" != "$ver" ]; then
+          channel=latest
+          if [ "$GITHUB_REF" = refs/heads/develop ]; then
+            ver="$ver-dev.$GITHUB_RUN_NUMBER"
+            channel=develop
+          elif [ "$GITHUB_EVENT_NAME" = workflow_dispatch ]; then
+            if git ls-remote --exit-code --tags origin "refs/tags/v$ver" >/dev/null; then
+              echo "::error::tag v$ver already exists; bump the version in pyexplorer/pyproject.toml"
+              exit 1
+            fi
+          elif [ "${GITHUB_REF_NAME#v}" != "$ver" ]; then
             echo "::error::tag $GITHUB_REF_NAME does not match pyproject version $ver"
             exit 1
           fi
           echo "version=$ver" >> "$GITHUB_OUTPUT"
+          echo "channel=$channel" >> "$GITHUB_OUTPUT"
 
       - uses: docker/setup-buildx-action@v3
 
       - uses: docker/login-action@v3
         with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
       - uses: docker/build-push-action@v6
         with:
           context: ./pyexplorer
           platforms: linux/amd64
           push: true
+          labels: |
+            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+            org.opencontainers.image.revision=${{ github.sha }}
+          build-args: |
+            EXPLORER_VERSION=v${{ steps.ver.outputs.version }}
+            EXPLORER_COMMIT=${{ github.sha }}
           tags: |
             ${{ env.IMAGE }}:${{ steps.ver.outputs.version }}
-            ${{ env.IMAGE }}:latest
+            ${{ env.IMAGE }}:${{ steps.ver.outputs.channel }}
+
+      # deploy-service.sh checks out this tag on the server. A tag pushed with
+      # GITHUB_TOKEN does not start this workflow a second time.
+      - name: Tag the release
+        if: github.ref_type == 'branch'
+        run: |
+          git tag "v${{ steps.ver.outputs.version }}" "$GITHUB_SHA"
+          git push origin "refs/tags/v${{ steps.ver.outputs.version }}"
 
   deploy:
     needs: publish
@@ -75,10 +120,11 @@ jobs:
           KNOWN_HOSTS: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
           DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
           DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+          RELEASE_TAG: v${{ needs.publish.outputs.version }}
         run: |
           install -m 700 -d ~/.ssh
           printf '%s\n' "$SSH_KEY" > ~/.ssh/id_ed25519
           chmod 600 ~/.ssh/id_ed25519
           printf '%s\n' "$KNOWN_HOSTS" > ~/.ssh/known_hosts
           ssh -o BatchMode=yes "$DEPLOY_USER@$DEPLOY_HOST" \
-            "bash /opt/explorer/pyexplorer/deploy/deploy-service.sh $GITHUB_REF_NAME"
+            "bash /opt/explorer/pyexplorer/deploy/deploy-service.sh $RELEASE_TAG"

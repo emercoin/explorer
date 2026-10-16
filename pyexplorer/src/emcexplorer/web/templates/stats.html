@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% block title %}Statistics · Emercoin explorer{% endblock %}
+{% block content %}
+<h1>Statistics</h1>
+<div class="stats">
+  <div><span>Blocks</span><strong>{{ "{:,}".format(summary.height + 1) }}</strong></div>
+  <div><span>Coin supply, EMC</span><strong title="{{ summary.supply }}">{{ "{:,.0f}".format(summary.supply | float) }}</strong></div>
+  <div><span>Transactions</span><strong>{{ "{:,}".format(summary.txs) if summary.txs is not none else "—" }}</strong></div>
+  <div><span>Known addresses</span><strong>{{ "{:,}".format(summary.known_addresses) if summary.known_addresses is not none else "—" }}</strong></div>
+  <div><span>Addresses with a balance</span><strong>{{ "{:,}".format(summary.funded_addresses) if summary.funded_addresses is not none else "—" }}</strong></div>
+  <div><span>Chain size</span><strong>{{ "{:,.0f} MB".format(summary.chain_size / 1e6) if summary.chain_size is not none else "—" }}</strong></div>
+</div>
+{% if charts %}
+<p class="muted small">Days are UTC days by block time; today is still counting. Transactions exclude coinbase and coinstake.</p>
+<div class="charts">
+  <figure><figcaption>Transactions per day <span class="muted">· last 90 days</span></figcaption>{{ charts.payments }}</figure>
+  <figure><figcaption>Active addresses per day <span class="muted">· last 90 days</span></figcaption>{{ charts.active }}</figure>
+  <figure><figcaption>Coin supply, EMC <span class="muted">· all time</span></figcaption>{{ charts.supply }}</figure>
+  <figure><figcaption>Chain size, MB <span class="muted">· all time</span></figcaption>{{ charts.size }}</figure>
+</div>
+<h2>Last 30 days</h2>
+<div class="scroll"><table class="list">
+  <thead><tr>
+    <th>Date</th><th class="num">Blocks</th><th class="num">PoS</th><th class="num">Transactions</th>
+    <th class="num">Volume, EMC</th><th class="num">Fees, EMC</th><th class="num">Minted, EMC</th>
+    <th class="num">Active addr.</th><th class="num">New addr.</th>
+  </tr></thead>
+  <tbody>
+  {% for d in table %}
+    <tr>
+      <td class="nowrap">{{ d.date }}</td>
+      <td class="num"><a href="/block/{{ d.last_height }}">{{ d.blocks }}</a></td>
+      <td class="num">{{ d.pos_blocks }}</td>
+      <td class="num">{{ "{:,}".format(d.payments) }}</td>
+      <td class="num">{{ d.volume }}</td>
+      <td class="num">{{ d.fees }}</td>
+      <td class="num">{{ d.mint }}</td>
+      <td class="num">{{ "{:,}".format(d.active_addresses) }}</td>
+      <td class="num">{{ "{:,}".format(d.new_addresses) }}</td>
+    </tr>
+  {% endfor %}
+  </tbody>
+</table></div>
+<p class="small muted">The same data as JSON: <a href="/api/v1/stats/daily?days=30">/api/v1/stats/daily</a>.</p>
+{% else %}
+<p class="muted">Statistics appear once the indexer has caught up with the node.</p>
+{% endif %}
+{% endblock %}

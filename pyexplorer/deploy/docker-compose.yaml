@@ -17,7 +17,7 @@ x-logging: &logging
     max-file: "3"
 
 x-explorer: &explorer
-  image: emercoin/explorer:${EXPLORER_TAG:-latest}
+  image: ghcr.io/emercoin/explorer:${EXPLORER_TAG:-latest}
   build: ..
   logging: *logging
   environment:

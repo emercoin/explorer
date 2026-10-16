@@ -64,8 +64,16 @@ CREATE TABLE IF NOT EXISTS outputs (
     spent_txid   BYTEA,
     spent_n      INTEGER,
     spent_height INTEGER,
+    addresses    TEXT[],                    -- bare multisig: the address of every key, else NULL
+    required     SMALLINT,                  -- bare multisig: signatures needed
     PRIMARY KEY (txid, n)
 );
+-- Added after the first release; filled for older blocks by the indexer
+-- (store.backfill_multisig).
+ALTER TABLE outputs ADD COLUMN IF NOT EXISTS addresses TEXT[];
+ALTER TABLE outputs ADD COLUMN IF NOT EXISTS required SMALLINT;
+CREATE INDEX IF NOT EXISTS outputs_multisig_addresses
+    ON outputs USING gin (addresses) WHERE addresses IS NOT NULL;
 CREATE INDEX IF NOT EXISTS outputs_unspent_by_address
     ON outputs (address) WHERE spent_txid IS NULL AND address IS NOT NULL;
 CREATE INDEX IF NOT EXISTS outputs_spent_height ON outputs (spent_height) WHERE spent_height IS NOT NULL;
@@ -106,6 +114,7 @@ CREATE TABLE IF NOT EXISTS address_stats (
     last_height  INTEGER NOT NULL
 );
 CREATE INDEX IF NOT EXISTS address_stats_balance ON address_stats (balance DESC);
+CREATE INDEX IF NOT EXISTS address_stats_first_height ON address_stats (first_height);
 
 -- Every name operation found in the chain (decoded from output scripts).
 CREATE TABLE IF NOT EXISTS name_ops (
@@ -141,6 +150,9 @@ CREATE TABLE IF NOT EXISTS names (
 -- /names listing (a text_pattern_ops index cannot do the ORDER BY).
 DROP INDEX IF EXISTS names_text_prefix;
 CREATE INDEX IF NOT EXISTS names_text_c ON names ((name_text COLLATE "C"));
+-- /names?sort=new: most recently changed first, keyset-paginated on (time, name)
+CREATE INDEX IF NOT EXISTS names_recent
+    ON names ((coalesce(time, 0)) DESC, (name_text COLLATE "C") DESC);
 CREATE INDEX IF NOT EXISTS names_namespace ON names (namespace);
 CREATE INDEX IF NOT EXISTS names_address ON names (address);
 
@@ -148,6 +160,30 @@ CREATE INDEX IF NOT EXISTS names_address ON names (address);
 -- rolled-back block). Persisted so a crash does not lose the work.
 CREATE TABLE IF NOT EXISTS names_dirty (
     name BYTEA PRIMARY KEY
+);
+
+-- Per-day totals (UTC days by block time) for the statistics page and the old
+-- chart API. Derived from the tables above and rebuilt from them (indexer/stats.py),
+-- so it needs no undo on reorgs: the days from the fork on are recomputed.
+CREATE TABLE IF NOT EXISTS daily_stats (
+    day              DATE    PRIMARY KEY,
+    first_height     INTEGER NOT NULL,
+    last_height      INTEGER NOT NULL,
+    blocks           INTEGER NOT NULL,
+    pos_blocks       INTEGER NOT NULL,
+    size             BIGINT  NOT NULL,      -- bytes of all blocks of the day
+    txs              INTEGER NOT NULL,      -- all transactions, coinbase and coinstake included
+    payments         INTEGER NOT NULL,      -- transactions that are neither coinbase nor coinstake
+    volume           BIGINT  NOT NULL,      -- outputs of those payments
+    fees             BIGINT  NOT NULL,
+    mint             BIGINT  NOT NULL,
+    supply           BIGINT  NOT NULL,      -- after the last block of the day
+    difficulty_pow   NUMERIC,               -- average over the day's PoW blocks
+    difficulty_pos   NUMERIC,
+    new_addresses    INTEGER NOT NULL,      -- addresses first seen that day
+    active_addresses INTEGER NOT NULL,      -- addresses in any transaction that day
+    funded_addresses INTEGER                -- addresses with a balance, sampled while the day
+                                            -- was the latest one; NULL for days before that
 );
 
 -- Every block marks older outputs as spent and bumps address totals, so these

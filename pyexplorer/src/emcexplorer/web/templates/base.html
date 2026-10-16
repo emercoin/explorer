@@ -4,17 +4,19 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{% block title %}Emercoin explorer{% endblock %}</title>
-  <link rel="stylesheet" href="/static/style.css">
-  <script src="/static/htmx.min.js" defer></script>
+  <link rel="icon" href="/static/favicon.ico?v={{ asset_version }}" type="image/x-icon">
+  <link rel="stylesheet" href="/static/style.css?v={{ asset_version }}">
+  <script src="/static/htmx.min.js?v={{ asset_version }}" defer></script>
 </head>
 <body>
 <header>
   <nav>
     <a class="brand" href="/">Emercoin explorer</a>
     <a href="/blocks">Blocks</a>
+    <a href="/mempool">Mempool</a>
     <a href="/names">Names</a>
     <a href="/richlist">Rich list</a>
-    <a href="/docs">API</a>
+    <a href="/stats">Statistics</a>
   </nav>
   <form class="search" action="/search" method="get" role="search">
     <input type="search" name="q" placeholder="Block, transaction, address or name" aria-label="Search"
@@ -33,6 +35,7 @@
   The index is empty.
   {% endif %}
   · <a href="/docs">API</a>
+  {% if build.commit %}· {{ build.version }} <a class="mono" href="https://github.com/emercoin/explorer/commit/{{ build.commit }}">{{ build.commit[:7] }}</a>{% endif %}
 </footer>
 </body>
 </html>

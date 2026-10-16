@@ -12,7 +12,7 @@ import httpx
 
 from ..config import Settings
 from ..rpc import RpcClient, RpcError
-from . import store
+from . import stats, store
 from .parse import Block, parse_block
 
 log = logging.getLogger(__name__)
@@ -74,6 +74,8 @@ class Indexer:
                 # Name state is read from the node; do it once near the tip
                 # instead of after every block of the initial sync.
                 await store.refresh_dirty_names(conn, self.rpc)
+                await store.backfill_multisig(conn, self.rpc)
+                await stats.refresh_daily_stats(conn)
             return start > target
 
     async def _find_fork(self, conn: asyncpg.Connection, tip_height: int, node_height: int) -> int:
