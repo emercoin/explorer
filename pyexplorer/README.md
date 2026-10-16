@@ -226,7 +226,7 @@ docker compose --env-file .env start indexer
 | `GET /addresses/{addr}/utxo` | непотраченные выходы |
 | `GET /addresses/{addr}/multisig?limit=` | мультиподписные выходы, где адрес — один из ключей |
 | `GET /richlist?limit=` | крупнейшие адреса |
-| `GET /names?prefix=dns:&namespace=&after=&include_inactive=&sort=` | список и поиск имён: `sort=name` (по умолчанию) — по алфавиту, `sort=new` — сначала недавно изменённые; `after` — значение `next` прошлой страницы |
+| `GET /names?prefix=dns:&namespace=&after=&include_inactive=&sort=` | список и поиск имён: `sort=new` (по умолчанию) — сначала недавно изменённые, `sort=name` — по алфавиту; `after` — значение `next` прошлой страницы |
 | `GET /names/{name}` | текущее значение, владелец, срок действия; у истёкшего имени `expired_time` — время блока, на котором оно истекло |
 | `GET /names/{name}/history` | все операции с именем |
 | `GET /search?q=` | что это: высота, хэш блока, txid, адрес или имя |

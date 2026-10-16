@@ -486,7 +486,7 @@ async def names(
     namespace: str | None = None,
     after: str | None = Query(None, description="cursor: 'next' of the previous page"),
     include_inactive: bool = False,
-    sort: str = Query("name", pattern="^(name|new)$", description="name: A to Z; new: last changed first"),
+    sort: str = Query("new", pattern="^(name|new)$", description="new: last changed first; name: A to Z"),
     limit: int = Query(50, ge=1, le=MAX_LIMIT),
 ) -> dict[str, Any]:
     # LIKE prefix search needs its wildcards escaped

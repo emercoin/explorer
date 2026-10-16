@@ -48,13 +48,13 @@ def texts(res: dict) -> list[str]:
 
 
 async def test_names_newest_first(api):
-    page1 = (await api.get("/api/v1/names?sort=new&include_inactive=true&limit=2")).json()
+    page1 = (await api.get("/api/v1/names?include_inactive=true&limit=2")).json()  # newest first by default
     assert texts(page1) == ["dns:foo", "dns:\x01bell"]  # changed in block 2
     page2 = (await api.get("/api/v1/names", params={
         "sort": "new", "include_inactive": "true", "limit": 2, "after": page1["next"]})).json()
     assert texts(page2) == ["dns:old", "dns:bar"]  # block 1
-    # the API default stays A to Z (byte order)
-    assert texts((await api.get("/api/v1/names?include_inactive=true")).json()) == [
+    # A to Z, in byte order
+    assert texts((await api.get("/api/v1/names?sort=name&include_inactive=true")).json()) == [
         "dns:\x01bell", "dns:bar", "dns:foo", "dns:old"]
     assert (await api.get("/api/v1/names?sort=new&after=nonsense")).status_code == 400
 
