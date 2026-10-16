@@ -96,7 +96,7 @@ async def test_tx_colours_and_block_ages(api):
 
 
 def test_visible_and_age():
-    assert _visible("a\x01\x7f\u202eb\n\t", keep="\n") == "a\u2401\u2421\ufffdb\n\u2409"
+    assert _visible("a\x01\x7f\u202eb\r\n\t") == "a\u2401\u2421\ufffdb\u240d\u240a\u2409"
     now = int(dt.datetime.now(dt.UTC).timestamp())
     assert _age(now - 65) in ("01:05", "01:06")
     assert _age(now - 3 * 3600 - 7) in ("3:00:07", "3:00:08")

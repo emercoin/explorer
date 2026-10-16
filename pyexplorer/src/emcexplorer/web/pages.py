@@ -66,18 +66,17 @@ def _age(ts: int | None) -> str:
 _INVISIBLE = re.compile("[\x00-\x1f\x7f-\x9f\u200b-\u200f\u202a-\u202e\u2060-\u2064\u2066-\u2069\ufeff]")
 
 
-def _visible(text: str, keep: str = "") -> str:
+def _visible(text: str) -> str:
     """Swap invisible characters for a visible, harmless stand-in.
 
     C0 controls become their Unicode control pictures (\x01 -> \u2401), DEL
     becomes \u2421, everything else the replacement character. DEL itself
-    (code 127) would not do: browsers draw nothing for it either.
+    (code 127) would not do: browsers draw nothing for it either. Line breaks
+    and tabs are swapped too (\n -> \u240a), so a value cannot stretch the page.
     """
 
     def sub(m: re.Match[str]) -> str:
         c = m.group()
-        if c in keep:
-            return c
         code = ord(c)
         if code < 0x20:
             return chr(0x2400 + code)
@@ -103,14 +102,8 @@ def _short(h: str | None, n: int = 10) -> str:
 
 
 def _field(f: dict[str, Any] | None) -> str:
-    """A value as the API gives it: text (line breaks kept), or base64 of binary data."""
-    if not f:
-        return ""
-    return _visible(f["text"], keep="\n\r\t") if f["text"] is not None else f"base64:{f['base64']}"
-
-
-def _name(f: dict[str, Any] | None) -> str:
-    """A name as the API gives it, with every invisible character made visible."""
+    """A name or value as the API gives it: text with every invisible character
+    made visible, or base64 of binary data."""
     if not f:
         return ""
     return _visible(f["text"]) if f["text"] is not None else f"base64:{f['base64']}"
@@ -125,7 +118,7 @@ def _name_url(f: dict[str, Any]) -> str | None:
 
 
 templates.env.filters.update(
-    utc=_utc, ago=_ago, age=_age, short=_short, field=_field, name=_name, visible=_visible,
+    utc=_utc, ago=_ago, age=_age, short=_short, field=_field, name=_field, visible=_visible,
     name_url=_name_url, name_status=_name_status,
 )
 
