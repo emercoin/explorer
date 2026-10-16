@@ -28,7 +28,8 @@
     <tr>
       <td>{{ n.vout }}</td>
       <td>{{ n.op }}</td>
-      <td class="wrap">{% set url = n.name | name_url %}{% if url %}<a href="{{ url }}">{{ n.name | name }}</a>{% else %}{{ n.name | name }}{% endif %}</td>
+      {% set text = n.name | name %}{% set short = text | truncate(80, true, "…", 0) %}
+      <td class="wrap"{% if short != text %} title="{{ text }}"{% endif %}>{% set url = n.name | name_url %}{% if url %}<a href="{{ url }}">{{ short }}</a>{% else %}{{ short }}{% endif %}</td>
       <td class="wrap value">{{ n.value | field | truncate(300) }}</td>
       <td class="num">{{ n.days if n.days is not none else "" }}</td>
     </tr>

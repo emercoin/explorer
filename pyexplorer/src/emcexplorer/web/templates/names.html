@@ -19,7 +19,8 @@
   {% for n in res['items'] %}
     {% set status, cls = n | name_status %}
     <tr>
-      <td class="wrap">{% set url = n.name | name_url %}{% if url %}<a class="{{ cls }}" href="{{ url }}">{{ n.name | name }}</a>{% else %}<span class="{{ cls }}">{{ n.name | name }}</span>{% endif %}</td>
+      {% set text = n.name | name %}{% set short = text | truncate(80, true, "…", 0) %}
+      <td class="wrap"{% if short != text %} title="{{ text }}"{% endif %}>{% set url = n.name | name_url %}{% if url %}<a class="{{ cls }}" href="{{ url }}">{{ short }}</a>{% else %}<span class="{{ cls }}">{{ short }}</span>{% endif %}</td>
       <td class="wrap value">{{ n.value | field | truncate(120) }}</td>
       <td class="nowrap" title="{{ n.time | utc }} UTC">{{ n.time | ago }}</td>
       <td class="small {{ cls }}">{{ status }}</td>

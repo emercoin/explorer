@@ -101,3 +101,23 @@ def test_visible_and_age():
     assert _age(now - 65) in ("01:05", "01:06")
     assert _age(now - 3 * 3600 - 7) in ("3:00:07", "3:00:08")
     assert _age(now - 2 * 86400 - 3600) == "2 d 01:00"
+
+
+async def test_long_names_are_cut_in_lists(pool):
+    long_name = b"dns:" + b"x" * 500  # the node allows up to 512 bytes
+    c = ChainBuilder("ln")
+    c.add_block([coinbase(A_, "100")], mint="100")
+    a0 = c.blocks[0]["tx"][0]["txid"]
+    c.add_block([coinbase(B_, "10"), TxSpec(vin=[(a0, 0)], version=NAME_TX, vout=[
+        name_out(1, long_name, 30), Out("99.98", A_)])], mint="10")
+    await sync(pool, FakeNode(c))
+    app = create_app(pool=pool)
+    full, cut = long_name.decode(), long_name.decode()[:79] + "…"
+    async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://t") as client:
+        listing = (await client.get("/names")).text
+        assert f">{cut}</a>" in listing and f'title="{full}"' in listing
+        tx = (await client.get(f"/tx/{c.blocks[1]['tx'][1]['txid']}")).text
+        assert f">{cut}</a>" in tx and f">{full}<" not in tx
+        page = (await client.get(f"/name/{full}")).text
+        assert f'<h1 class="wrap">{full[:119]}…</h1>' in page
+        assert f'<pre class="value">{full}</pre>' in page and f"<title>{full[:59]}… · " in page
