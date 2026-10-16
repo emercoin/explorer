@@ -150,6 +150,9 @@ CREATE TABLE IF NOT EXISTS names (
 -- /names listing (a text_pattern_ops index cannot do the ORDER BY).
 DROP INDEX IF EXISTS names_text_prefix;
 CREATE INDEX IF NOT EXISTS names_text_c ON names ((name_text COLLATE "C"));
+-- /names?sort=new: most recently changed first, keyset-paginated on (time, name)
+CREATE INDEX IF NOT EXISTS names_recent
+    ON names ((coalesce(time, 0)) DESC, (name_text COLLATE "C") DESC);
 CREATE INDEX IF NOT EXISTS names_namespace ON names (namespace);
 CREATE INDEX IF NOT EXISTS names_address ON names (address);
 

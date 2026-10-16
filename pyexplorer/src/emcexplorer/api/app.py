@@ -94,8 +94,11 @@ def _name(row: asyncpg.Record, tip: int) -> dict[str, Any]:
         "vout": row["vout"],
         "expires_at": row["expires_at"],
         "expires_in": row["expires_at"] - tip,
+        # time of the block at expires_at, once the chain has reached it
+        "expired_time": row.get("expired_time"),
         "deleted": row["deleted"],
         "active": not row["deleted"] and row["expires_at"] > tip,
+        "time": row["time"],  # of the last operation
     }
 
 
@@ -178,10 +181,29 @@ async def transaction(request: Request, txid: str) -> dict[str, Any]:
             """,
             key,
         )
+        current = await conn.fetch(
+            "SELECT name, txid, vout, deleted, expires_at FROM names WHERE name = ANY($1::bytea[])",
+            [n["name"] for n in names],
+        )
         block_hash = await conn.fetchval("SELECT hash FROM blocks WHERE height = $1", tx["height"])
         tip = await _tip(conn)
     in_names = {r["n"]: _bytes_field(r["name"]) for r in spent_names}
     out_names = {n["n"]: _bytes_field(n["name"]) for n in names}
+    now = {r["name"]: r for r in current}
+    spent = {o["n"] for o in outs if o["spent_txid"]}
+
+    def name_state(op: asyncpg.Record) -> str | None:
+        """What became of the name this output carries: active, expired, deleted or spent."""
+        if op["n"] in spent:
+            return "spent"
+        cur = now.get(op["name"])
+        if cur is None or cur["txid"] != key or cur["vout"] != op["n"]:
+            return None  # the node's name index does not point here
+        if cur["deleted"]:
+            return "deleted"
+        return "active" if cur["expires_at"] > tip else "expired"
+
+    out_states = {n["n"]: name_state(n) for n in names}
     result = _tx_summary(tx)
     result.update(
         blockhash=block_hash.hex(),
@@ -199,6 +221,7 @@ async def transaction(request: Request, txid: str) -> dict[str, Any]:
                 "value": format_units(i["value"]),
                 "address": i["address"],
                 "name": in_names.get(i["n"]),
+                "name_state": "spent" if i["n"] in in_names else None,
             }
             for i in ins
         ],
@@ -211,6 +234,7 @@ async def transaction(request: Request, txid: str) -> dict[str, Any]:
                 **multisig_fields(o["addresses"], o["required"]),
                 "script": o["script"].hex(),
                 "name": out_names.get(o["n"]),
+                "name_state": out_states.get(o["n"]),
                 "spent_by": (
                     {"txid": o["spent_txid"].hex(), "vin": o["spent_n"], "height": o["spent_height"]}
                     if o["spent_txid"]
@@ -460,33 +484,49 @@ async def names(
     request: Request,
     prefix: str = Query("", description="name prefix, e.g. 'dns:'"),
     namespace: str | None = None,
-    after: str | None = Query(None, description="cursor: last name of the previous page"),
+    after: str | None = Query(None, description="cursor: 'next' of the previous page"),
     include_inactive: bool = False,
+    sort: str = Query("name", pattern="^(name|new)$", description="name: A to Z; new: last changed first"),
     limit: int = Query(50, ge=1, le=MAX_LIMIT),
 ) -> dict[str, Any]:
     # LIKE prefix search needs its wildcards escaped
     pattern = prefix.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_") + "%"
+    filters = """
+        SELECT n.*, b.time AS expired_time FROM names n
+        LEFT JOIN blocks b ON b.height = n.expires_at
+        WHERE n.name_text COLLATE "C" LIKE $1
+          AND ($2::text IS NULL OR n.namespace = $2)
+          AND ($3 OR (NOT n.deleted AND n.expires_at > $4))
+    """
+    if sort == "new":
+        # cursor '<time>:<name>' of the last row; the name may hold ':' itself
+        after_time, after_name = 2**62, ""  # first page: before everything
+        if after:
+            t, sep, after_name = after.partition(":")
+            if not sep or not t.isdigit():
+                raise HTTPException(400, "cursor must look like '<time>:<name>'")
+            after_time = int(t)
+        query = filters + """
+          AND (coalesce(n.time, 0), n.name_text COLLATE "C") < ($6::bigint, $7::text)
+        ORDER BY coalesce(n.time, 0) DESC, n.name_text COLLATE "C" DESC
+        LIMIT $5
+        """
+        cursor_args: tuple[Any, ...] = (after_time, after_name)
+    else:
+        query = filters + """
+          AND ($6::text IS NULL OR n.name_text COLLATE "C" > $6)
+        ORDER BY n.name_text COLLATE "C"
+        LIMIT $5
+        """
+        cursor_args = (after,)
     async with _pool(request).acquire() as conn:
         tip = await _tip(conn)
-        rows = await conn.fetch(
-            """
-            SELECT * FROM names
-            WHERE name_text COLLATE "C" LIKE $1
-              AND ($2::text IS NULL OR namespace = $2)
-              AND ($3::text IS NULL OR name_text COLLATE "C" > $3)
-              AND ($4 OR (NOT deleted AND expires_at > $5))
-            ORDER BY name_text COLLATE "C"
-            LIMIT $6
-            """,
-            pattern,
-            namespace,
-            after,
-            include_inactive,
-            tip,
-            limit,
-        )
+        rows = await conn.fetch(query, pattern, namespace, include_inactive, tip, limit, *cursor_args)
     items = [_name(r, tip) for r in rows]
-    cursor = rows[-1]["name_text"] if len(rows) == limit else None
+    cursor = None
+    if len(rows) == limit:
+        last = rows[-1]
+        cursor = f"{last['time'] or 0}:{last['name_text']}" if sort == "new" else last["name_text"]
     return {"items": items, "next": cursor}
 
 
@@ -520,7 +560,11 @@ async def name_history(request: Request, name: str) -> list[dict[str, Any]]:
 @router.get("/names/{name:path}")
 async def name(request: Request, name: str) -> dict[str, Any]:
     async with _pool(request).acquire() as conn:
-        row = await conn.fetchrow("SELECT * FROM names WHERE name = $1", name.encode())
+        row = await conn.fetchrow(
+            "SELECT n.*, b.time AS expired_time FROM names n "
+            "LEFT JOIN blocks b ON b.height = n.expires_at WHERE n.name = $1",
+            name.encode(),
+        )
         if row is None:
             raise HTTPException(404, "name not found")
         tip = await _tip(conn)

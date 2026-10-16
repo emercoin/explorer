@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import hashlib
 import os
+import re
 from datetime import UTC, datetime
 from importlib.resources import files
 from typing import Any
@@ -20,6 +21,7 @@ from fastapi.templating import Jinja2Templates
 
 from ..amounts import format_units
 from ..api import app as api
+from ..nvs import BLOCKS_PER_DAY
 from .charts import Point, bar_chart, compact, line_chart
 
 router = APIRouter(include_in_schema=False)
@@ -46,6 +48,54 @@ def _ago(ts: int | None) -> str:
     return f"{max(s, 0)} s ago"
 
 
+def _age(ts: int | None) -> str:
+    """Time since `ts` at the moment the page was built: 07:42, 3:07:42, 12 d 03:07."""
+    if ts is None:
+        return ""
+    s = max(int(datetime.now(UTC).timestamp()) - ts, 0)
+    d, s = divmod(s, 86400)
+    h, s = divmod(s, 3600)
+    m, s = divmod(s, 60)
+    if d:
+        return f"{d} d {h:02}:{m:02}"
+    return f"{h}:{m:02}:{s:02}" if h else f"{m:02}:{s:02}"
+
+
+# Characters a browser draws as nothing, or that reorder the text around them:
+# C0 and C1 controls, DEL, zero-width and bidirectional formatting marks.
+_INVISIBLE = re.compile("[\x00-\x1f\x7f-\x9f\u200b-\u200f\u202a-\u202e\u2060-\u2064\u2066-\u2069\ufeff]")
+
+
+def _visible(text: str, keep: str = "") -> str:
+    """Swap invisible characters for a visible, harmless stand-in.
+
+    C0 controls become their Unicode control pictures (\x01 -> \u2401), DEL
+    becomes \u2421, everything else the replacement character. DEL itself
+    (code 127) would not do: browsers draw nothing for it either.
+    """
+
+    def sub(m: re.Match[str]) -> str:
+        c = m.group()
+        if c in keep:
+            return c
+        code = ord(c)
+        if code < 0x20:
+            return chr(0x2400 + code)
+        return "\u2421" if code == 0x7F else "\ufffd"
+
+    return _INVISIBLE.sub(sub, text)
+
+
+def _name_status(n: dict[str, Any]) -> tuple[str, str]:
+    """(text, css class) of a name's state: when it expires, or when it did."""
+    if n["deleted"]:
+        return "deleted", "neg"
+    if n["active"]:
+        days = round(n["expires_in"] / BLOCKS_PER_DAY)
+        return f"expires in {n['expires_in']:,} blocks (~{days:,} days)", "pos"
+    return f"expired {_utc(n.get('expired_time'))[:10]}".strip(), "neg"
+
+
 def _short(h: str | None, n: int = 10) -> str:
     if not h:
         return ""
@@ -53,10 +103,17 @@ def _short(h: str | None, n: int = 10) -> str:
 
 
 def _field(f: dict[str, Any] | None) -> str:
-    """Name or value as the API gives it: text, or base64 of binary data."""
+    """A value as the API gives it: text (line breaks kept), or base64 of binary data."""
     if not f:
         return ""
-    return f["text"] if f["text"] is not None else f"base64:{f['base64']}"
+    return _visible(f["text"], keep="\n\r\t") if f["text"] is not None else f"base64:{f['base64']}"
+
+
+def _name(f: dict[str, Any] | None) -> str:
+    """A name as the API gives it, with every invisible character made visible."""
+    if not f:
+        return ""
+    return _visible(f["text"]) if f["text"] is not None else f"base64:{f['base64']}"
 
 
 def _name_url(f: dict[str, Any]) -> str | None:
@@ -67,7 +124,10 @@ def _name_url(f: dict[str, Any]) -> str | None:
     return "/name/" + quote(text, safe="")
 
 
-templates.env.filters.update(utc=_utc, ago=_ago, short=_short, field=_field, name_url=_name_url)
+templates.env.filters.update(
+    utc=_utc, ago=_ago, age=_age, short=_short, field=_field, name=_name, visible=_visible,
+    name_url=_name_url, name_status=_name_status,
+)
 
 
 def _asset_version() -> str:
@@ -189,13 +249,18 @@ async def address(request: Request, address: str, before: str | None = None) -> 
 async def names(
     request: Request,
     prefix: str = Query("", max_length=600),
-    after: str | None = Query(None, max_length=600),
+    after: str | None = Query(None, max_length=700),
     inactive: bool = False,
+    sort: str = Query("new", pattern="^(name|new)$"),
 ) -> HTMLResponse:
-    res = await api.names(
-        request, prefix=prefix, namespace=None, after=after, include_inactive=inactive, limit=PAGE
-    )
-    return await _render(request, "names.html", res=res, prefix=prefix, inactive=inactive)
+    try:
+        res = await api.names(
+            request, prefix=prefix, namespace=None, after=after, include_inactive=inactive,
+            sort=sort, limit=PAGE,
+        )
+    except HTTPException as e:
+        return await _error(request, e)
+    return await _render(request, "names.html", res=res, prefix=prefix, inactive=inactive, sort=sort)
 
 
 @router.get("/name/{name:path}", response_class=HTMLResponse)
