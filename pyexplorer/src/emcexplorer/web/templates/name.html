@@ -1,7 +1,12 @@
 {% extends "base.html" %}
-{% block title %}{{ name | visible }} · Emercoin explorer{% endblock %}
+{% set full = name | visible %}{% set short = full | truncate(120, true, "…", 0) %}
+{% block title %}{{ full | truncate(60, true, "…", 0) }} · Emercoin explorer{% endblock %}
 {% block content %}
-<h1 class="wrap">{{ name | visible }}</h1>
+<h1 class="wrap">{{ short }}</h1>
+{% if short != full %}
+<p class="muted">The name is {{ name | length }} characters long; in full:</p>
+<pre class="value">{{ full }}</pre>
+{% endif %}
 {% if current %}
 <dl class="kv">
   {% set status, cls = current | name_status %}
