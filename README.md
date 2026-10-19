@@ -1,18 +1,24 @@
 # Emercoin Explorer
 
-This website will provide a blockachain explorer for the Emercoin project.
-It will also work with peercoin and forked versions of it.
+A blockchain explorer for [Emercoin](https://emercoin.com) with native support for
+its name-value storage (NVS): https://explorer3.emercoin.com
 
-Please refer to INSTALL.txt for a (brief) installation guide on CentOS with LAMP stack.
+The explorer lives in [pyexplorer/](pyexplorer): an indexer, an HTTP API and the site,
+in Python on PostgreSQL. Its README (in Russian) covers the design, how to run it and
+the API; the API is also described at [/docs](https://explorer3.emercoin.com/docs).
 
-## Translations
+## Branches and releases
 
-For contributing translations via a pull request, please see:
-- [html/lang](html/lang)
-- [html/js/amcharts/lang](html/js/amcharts/lang)
-- [html/js/amcharts/plugins/dataloader/lang](html/js/amcharts/plugins/dataloader/lang)
-- [html/js/amcharts/plugins/export/lang](html/js/amcharts/plugins/export/lang)
+* `master`: what is released. `develop` is merged into it for a release, and a tag
+  `vX.Y.Z` builds the image `ghcr.io/emercoin/explorer:X.Y.Z` and `:latest`.
+* `develop`: work in progress. Changes reach it only through pull requests, and every
+  merge that touches `pyexplorer/` is deployed to https://explorer3.emercoin.com as
+  `X.Y.Z-dev.N`.
 
-## Python rewrite (work in progress)
+Pull requests go to `develop`, from a branch named `feature/…`, `fix/…` or `docs/…`.
 
-[pyexplorer/](pyexplorer) contains a new indexer and HTTP API in Python on PostgreSQL, with native NVS support. See its README (in Russian) for the design, a comparison with existing open-source explorers, and how to run it.
+## The old PHP explorer
+
+The previous explorer (PHP and MySQL) is kept for reference and is no longer developed:
+[html/](html), [tools/](tools), `*.sql`, [INSTALL.txt](INSTALL.txt) and
+[crontab.txt](crontab.txt).
