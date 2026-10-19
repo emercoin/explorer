@@ -51,6 +51,7 @@ header {
 }
 header nav { display: flex; flex-wrap: wrap; gap: .3rem 1rem; align-items: baseline; }
 header .brand { font-weight: 700; color: var(--fg); margin-right: .5rem; }
+header .networks { color: var(--muted); }
 .search { display: flex; flex: 1 1 18rem; gap: .4rem; max-width: 40rem; margin-left: auto; }
 input[type=search], input[type=text] {
   flex: 1; min-width: 0; padding: .45rem .6rem; font: inherit; color: inherit;

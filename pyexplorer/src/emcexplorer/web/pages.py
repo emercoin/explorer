@@ -21,6 +21,7 @@ from fastapi.templating import Jinja2Templates
 
 from ..amounts import format_units
 from ..api import app as api
+from ..config import network_links, network_name
 from ..nvs import BLOCKS_PER_DAY
 from .charts import Point, bar_chart, compact, line_chart
 
@@ -156,6 +157,7 @@ def _asset_version() -> str:
 
 templates.env.globals["asset_version"] = _asset_version()
 # Release and commit the image was built from (see the Dockerfile); empty when run from a checkout.
+templates.env.globals["network"] = {"name": network_name(), "links": network_links()}
 templates.env.globals["build"] = {
     "version": os.environ.get("EXPLORER_VERSION", ""),
     "commit": os.environ.get("EXPLORER_COMMIT", ""),

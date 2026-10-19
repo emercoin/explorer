@@ -13,6 +13,7 @@ import asyncpg
 from fastapi import APIRouter, FastAPI, HTTPException, Query, Request
 
 from ..amounts import format_units
+from ..config import network_name
 from ..nvs import OP_NAMES, as_text
 from ..rpc import RpcClient
 from .mempool import TX_KINDS, Mempool, NodeUnavailable, multisig_fields, tx_kinds
@@ -118,6 +119,7 @@ async def status(request: Request) -> dict[str, Any]:
         "indexed_time": tip["time"] if tip else None,
         "node_height": meta.get("node_height"),
         "updated_at": meta.get("updated_at"),
+        "network": network_name(),
     }
 
 

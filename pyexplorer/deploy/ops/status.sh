@@ -9,15 +9,16 @@
 # them changes anything on the host.
 #
 # The repository is public, so whatever this prints ends up in a public Actions
-# log. That is why node and Caddy logs (peer and visitor IP addresses) and
-# anything from .env are never printed.
+# log. That is why node and Caddy logs (peer and visitor IP addresses), anything
+# from .env, the host's name and containers outside this stack are never printed.
 set -uo pipefail
 
 read -r action _ <<<"${SSH_ORIGINAL_COMMAND:-${1:-status}}"
 case "$action" in
   status | logs-indexer | logs-api | logs-migrate) ;;
+  logs-indexer-testnet | logs-api-testnet | logs-migrate-testnet) ;;
   *)
-    echo "unknown action '$action'; use status, logs-indexer, logs-api or logs-migrate" >&2
+    echo "unknown action '$action'; use status or logs-{indexer,api,migrate}[-testnet]" >&2
     exit 2
     ;;
 esac
@@ -25,7 +26,11 @@ esac
 cd /opt/explorer/pyexplorer/deploy || exit 1
 COMPOSE=(docker compose --env-file .env)
 API_URL=http://127.0.0.1:8000
-[ -f /etc/explorer-ops.env ] && API_URL=$(. /etc/explorer-ops.env; echo "${API_URL:-$API_URL}")
+TESTNET_API_URL=http://127.0.0.1:8001   # api-testnet, see docker-compose.override.example.yaml
+if [ -f /etc/explorer-ops.env ]; then
+  API_URL=$(. /etc/explorer-ops.env; echo "${API_URL:-$API_URL}")
+  TESTNET_API_URL=$(. /etc/explorer-ops.env; echo "${TESTNET_API_URL:-$TESTNET_API_URL}")
+fi
 
 case "$action" in
   status)
@@ -36,8 +41,24 @@ case "$action" in
     echo "== meta"  # indexer bookkeeping: daily stats mark, one-off backfills
     "${COMPOSE[@]}" exec -T postgres psql -U explorer -d explorer -Atc \
       "SELECT key || ': ' || value FROM meta WHERE key <> 'status' ORDER BY key" 2>&1 | sed 's/^/  /'
-    echo "== disk";         df -h --output=size,used,avail,pcent / | sed 's/^/  /'
-    echo "== health";       journalctl -t explorer-health -n 10 --no-pager -o short-iso 2>/dev/null || true
+    if [ -n "$("${COMPOSE[@]}" ps -q api-testnet 2>/dev/null)" ]; then
+      echo "== index testnet"
+      curl -sf --max-time 10 "$TESTNET_API_URL/api/v1/status" || echo "API $TESTNET_API_URL does not answer"
+      echo
+    fi
+    # Shares only, no sizes: the log is public and the host's capacity is nobody's business.
+    echo "== disk";         df --output=pcent / | tail -1 | sed 's/^ */  used /'
+    echo "== memory"
+    awk '/^MemTotal/ {mt=$2} /^MemAvailable/ {ma=$2} /^SwapTotal/ {st=$2} /^SwapFree/ {sf=$2}
+         END {printf "  used %d%%, swap used %d%%\n", 100*(mt-ma)/mt, st ? 100*(st-sf)/st : 0}' /proc/meminfo
+    # this stack's containers only, not whatever else runs on the host; usage without the limit
+    mapfile -t ids < <("${COMPOSE[@]}" ps -q)
+    [ "${#ids[@]}" -gt 0 ] &&
+      docker stats --no-stream --format '{{.Name}}\t{{.MemUsage}}\t{{.CPUPerc}}' "${ids[@]}" |
+      sed -E 's| / [^\t]*||; s/^/  /'
+    echo "== health"  # message and time only: the journal's host column and the host name in the text stay out
+    journalctl -t explorer-health -n 10 --no-pager -o short-iso 2>/dev/null |
+      sed -E "s/^(\S+) \S+ [^:]+: /\1 /; s/ on $(hostname)//" || true
     ;;
   logs-*)
     "${COMPOSE[@]}" logs --no-color --timestamps --tail 200 "${action#logs-}"
