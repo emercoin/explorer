@@ -46,12 +46,16 @@ case "$action" in
       curl -sf --max-time 10 "$TESTNET_API_URL/api/v1/status" || echo "API $TESTNET_API_URL does not answer"
       echo
     fi
-    echo "== disk";         df -h --output=size,used,avail,pcent / | sed 's/^/  /'
-    echo "== memory";       free -m | sed 's/^/  /'
-    # this stack's containers only, not whatever else runs on the host
+    # Shares only, no sizes: the log is public and the host's capacity is nobody's business.
+    echo "== disk";         df --output=pcent / | tail -1 | sed 's/^ */  used /'
+    echo "== memory"
+    awk '/^MemTotal/ {mt=$2} /^MemAvailable/ {ma=$2} /^SwapTotal/ {st=$2} /^SwapFree/ {sf=$2}
+         END {printf "  used %d%%, swap used %d%%\n", 100*(mt-ma)/mt, st ? 100*(st-sf)/st : 0}' /proc/meminfo
+    # this stack's containers only, not whatever else runs on the host; usage without the limit
     mapfile -t ids < <("${COMPOSE[@]}" ps -q)
     [ "${#ids[@]}" -gt 0 ] &&
-      docker stats --no-stream --format 'table {{.Name}}\t{{.MemUsage}}\t{{.CPUPerc}}' "${ids[@]}" | sed 's/^/  /'
+      docker stats --no-stream --format '{{.Name}}\t{{.MemUsage}}\t{{.CPUPerc}}' "${ids[@]}" |
+      sed -E 's| / [^\t]*||; s/^/  /'
     echo "== health"  # message and time only: the journal's host column and the host name in the text stay out
     journalctl -t explorer-health -n 10 --no-pager -o short-iso 2>/dev/null |
       sed -E "s/^(\S+) \S+ [^:]+: /\1 /; s/ on $(hostname)//" || true
