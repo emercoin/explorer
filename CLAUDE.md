@@ -34,7 +34,9 @@ Push (merge) в `develop`, затрагивающий `pyexplorer/`, запус�
 по SSH `pyexplorer/deploy/deploy-service.sh` на VPS (`/opt/explorer`).
 Тег `vX.Y.Z` (версия из `pyexplorer/pyproject.toml`) делает обычный релиз с `:latest`.
 
-На VPS стек поднят с `deploy/docker-compose.override.yaml`: своя нода и Caddy
-выключены профилями, на хосте уже работают нода `emc-public` и nginx на :80.
-Логи Actions публичные (репозиторий открытый): не выводить в них секреты, IP
-пиров и посетителей.
+На VPS стек поднят с `deploy/docker-compose.override.yaml` (не в git): своя нода и
+Caddy выключены профилями.
+Репозиторий и логи Actions публичные: не писать в них секреты, IP пиров и
+посетителей, имя и устройство сервера (что ещё на нём работает), его
+характеристики (CPU, память, диск) и замеры нагрузки, а также способы уронить
+ноду или сервис.
