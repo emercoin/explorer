@@ -1,4 +1,5 @@
-"""The /api/... routes of the PHP explorer (html/api.php), served from the new index.
+"""The /api/... routes of the PHP explorer (html/api.php, in the git
+history up to v0.1.0), served from the new index.
 
 Kept for outside users of the old API. Paths and field names are the same,
 values follow the PHP version: everything that came from MySQL is a string,
