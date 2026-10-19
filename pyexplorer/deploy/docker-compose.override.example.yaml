@@ -1,0 +1,66 @@
+# Template for host-specific overrides: copy to docker-compose.override.yaml
+# (git-ignored; docker compose loads it automatically next to
+# docker-compose.yaml). This one is used on emc-relay-1, see ../docs/vps-run.md.
+#
+# This host already runs the public relay node `emc-public` and the
+# emercoin.com nginx on :80, so:
+#   * the stack's own node and Caddy are disabled (profile "own-node"/"caddy");
+#   * indexer and api reach emc-public's RPC over the private network emc-rpc;
+#   * api is published on 127.0.0.1:8000 only; the host nginx proxies
+#     explorer3.emercoin.com to it (TLS is done by Cloudflare).
+
+x-rpc-env: &rpc-env
+  EMC_RPC_URL: http://explorer:${EMC_RPC_PASSWORD}@emc-public:6662/
+
+networks:
+  emc-rpc:
+    external: true
+
+services:
+  emc:
+    profiles: ["own-node"]
+
+  caddy:
+    profiles: ["caddy"]
+
+  postgres:
+    mem_limit: 768m
+    command:
+      - postgres
+      - -c
+      - shared_buffers=256MB
+      - -c
+      - effective_cache_size=768MB
+      - -c
+      - work_mem=8MB
+      # SSD: random reads are almost as cheap as sequential ones.
+      - -c
+      - random_page_cost=1.1
+      - -c
+      - maintenance_work_mem=128MB
+      # 2GB during the initial sync; steady state writes one block a minute.
+      - -c
+      - max_wal_size=512MB
+      - -c
+      - checkpoint_timeout=15min
+      - -c
+      - wal_compression=on
+      # The indexer resumes from the last committed block, so losing the last
+      # few commits on a crash is harmless; this roughly halves fsyncs.
+      - -c
+      - synchronous_commit=off
+
+  indexer:
+    mem_limit: 384m
+    environment: *rpc-env
+    networks: [default, emc-rpc]
+    depends_on: !override
+      migrate:
+        condition: service_completed_successfully
+
+  api:
+    mem_limit: 256m
+    environment: *rpc-env
+    networks: [default, emc-rpc]
+    ports:
+      - "127.0.0.1:8000:8000"

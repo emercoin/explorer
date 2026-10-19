@@ -1,0 +1,23 @@
+# emercoind config for the explorer stack. Copy to emercoin.conf and set rpcpassword
+# (the same password goes into EMC_RPC_PASSWORD in deploy/.env).
+#
+# The explorer only reads the chain, so the wallet is disabled: nothing on this
+# node can be spent, whatever happens to the RPC password.
+server=1
+listen=1
+daemon=0
+disablewallet=1
+# Explorer needs the full transaction index (name_show reads name txs from it).
+# It is the Emercoin default; stated here so nobody turns it off.
+txindex=1
+emcdns=0
+
+# RPC is reachable only from the compose network (see the subnet in
+# docker-compose.yaml); the node publishes no RPC port to the host.
+rpcbind=0.0.0.0
+rpcallowip=172.28.0.0/24
+rpcport=6662
+rpcuser=explorer
+rpcpassword=CHANGE_ME
+
+maxconnections=32

@@ -1,0 +1,10 @@
+[Unit]
+Description=Emercoin explorer database dump, nightly
+
+[Timer]
+OnCalendar=*-*-* 03:17:00 UTC
+Persistent=true
+RandomizedDelaySec=10min
+
+[Install]
+WantedBy=timers.target

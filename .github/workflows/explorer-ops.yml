@@ -1,0 +1,46 @@
+# Read-only look at the production server: container state, index height, disk,
+# recent health-check messages, or the tail of the indexer/api/migrate logs.
+# Run it from Actions -> explorer ops -> Run workflow, or through the API.
+#
+# Uses its own key pair, pinned on the server to pyexplorer/deploy/ops/status.sh
+# (see the header there), so this workflow cannot run anything else. The script
+# reaches the server with the first release that contains it.
+#
+# Environment "production" secrets, shared with explorer-release.yml:
+#   DEPLOY_HOST, DEPLOY_USER, DEPLOY_KNOWN_HOSTS
+# plus
+#   OPS_SSH_KEY          private key of the ops key pair
+#
+# The repository is public and so is this log; status.sh prints nothing secret.
+name: explorer ops
+
+on:
+  workflow_dispatch:
+    inputs:
+      action:
+        description: What to show
+        type: choice
+        default: status
+        options: [status, logs-indexer, logs-api, logs-migrate]
+
+permissions: {}
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    environment: production
+    timeout-minutes: 5
+    steps:
+      - name: ${{ inputs.action }}
+        env:
+          SSH_KEY: ${{ secrets.OPS_SSH_KEY }}
+          KNOWN_HOSTS: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+          DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+          ACTION: ${{ inputs.action }}
+        run: |
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "$SSH_KEY" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          printf '%s\n' "$KNOWN_HOSTS" > ~/.ssh/known_hosts
+          ssh -o BatchMode=yes "$DEPLOY_USER@$DEPLOY_HOST" "$ACTION"

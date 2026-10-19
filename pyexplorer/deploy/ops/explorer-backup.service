@@ -1,0 +1,9 @@
+[Unit]
+Description=Emercoin explorer database dump
+After=docker.service
+
+[Service]
+Type=oneshot
+Nice=10
+IOSchedulingClass=idle
+ExecStart=/opt/explorer/pyexplorer/deploy/ops/backup.sh

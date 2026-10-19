@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% set full = name | visible %}{% set short = full | truncate(120, true, "…", 0) %}
+{% block title %}{{ full | truncate(60, true, "…", 0) }} · Emercoin explorer{% endblock %}
+{% block content %}
+<h1 class="wrap">{{ short }}</h1>
+{% if short != full %}
+<p class="muted">The name is {{ name | length }} characters long; in full:</p>
+<pre class="value">{{ full }}</pre>
+{% endif %}
+{% if current %}
+<dl class="kv">
+  {% set status, cls = current | name_status %}
+  <dt>Status</dt><dd class="{{ cls }}">{% if current.active %}active, {% endif %}{{ status }}</dd>
+  <dt>Owner</dt><dd>{% if current.address %}<a class="mono" href="/address/{{ current.address }}">{{ current.address }}</a>{% endif %}</dd>
+  <dt>Expires at</dt><dd>block {{ current.expires_at }}</dd>
+  <dt>Last change</dt><dd class="mono"><a href="/tx/{{ current.txid }}">{{ current.txid | short(12) }}</a></dd>
+</dl>
+<h2>Value</h2>
+<pre class="value">{{ current.value | field }}</pre>
+{% else %}
+<p class="muted">The node has no current state for this name; its history is below.</p>
+{% endif %}
+
+<h2>History</h2>
+<div class="scroll"><table class="list">
+  <thead><tr><th>Block</th><th>Time (UTC)</th><th>Operation</th><th>Value</th><th class="num">Days</th><th>Tx</th></tr></thead>
+  <tbody>
+  {% for h in history %}
+    <tr>
+      <td><a href="/block/{{ h.height }}">{{ h.height }}</a></td>
+      <td class="nowrap">{{ h.time | utc }}</td>
+      <td>{{ h.op }}</td>
+      <td class="wrap value">{{ h.value | field | truncate(200) }}</td>
+      <td class="num">{{ h.days if h.days is not none else "" }}</td>
+      <td class="mono"><a href="/tx/{{ h.txid }}">{{ h.txid | short(6) }}</a></td>
+    </tr>
+  {% endfor %}
+  </tbody>
+</table></div>
+{% endblock %}
