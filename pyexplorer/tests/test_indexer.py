@@ -272,7 +272,8 @@ async def test_api_address(api):
     utxo = (await api.get(f"/api/v1/addresses/{C_}/utxo")).json()
     assert sorted(u["value"] for u in utxo) == ["0.010000", "61.000000"]
     rich = (await api.get("/api/v1/richlist?limit=1")).json()
-    assert rich == [{"address": B_, "balance": "99.980000"}]
+    assert [(r["address"], r["balance"], r["last_height"]) for r in rich] == [(B_, "99.980000", 2)]
+    assert rich[0]["last_time"] == (await api.get("/api/v1/blocks/2")).json()["time"]
 
 
 async def test_api_names(api):

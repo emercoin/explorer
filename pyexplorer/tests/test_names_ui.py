@@ -9,7 +9,7 @@ import pytest
 from emcexplorer.api.app import create_app
 from emcexplorer.web.pages import _age, _visible
 from fakenode import ChainBuilder, FakeNode, Out, TxSpec, name_script
-from test_indexer import A_, B_, NAME_TX, coinbase, sync
+from test_indexer import A_, B_, C_, NAME_TX, RANDPAY_TXID, coinbase, sync
 
 FOO, BAR, OLD, BELL = b"dns:foo", b"dns:bar", b"dns:old", b"dns:\x01bell"
 
@@ -82,13 +82,18 @@ async def test_names_page(api):
 async def test_tx_colours_and_block_ages(api):
     later = chain().blocks[2]["tx"][1]["txid"]
     page = (await api.get(f"/tx/{later}")).text
-    # input: the name output it spends; output: where the name now lives
-    assert re.search(r'name: <a class="neg" href="/name/dns%3Afoo">', page)
+    # input: an earlier output of a name still active; output: where the name now lives
+    assert re.search(r'title="dns:foo \(earlier output, the name is active\)">name: <a class="past" '
+                     r'href="/name/dns%3Afoo">', page)
     assert re.search(r'name: <a class="pos" href="/name/dns%3Afoo">', page)
     assert '<span class="small pos">unspent</span>' in page
     tx = (await api.get(f"/api/v1/txs/{later}")).json()
     assert [o.get("name_state") for o in tx["vout"]] == [None if o["name"] is None else "active"
                                                           for o in tx["vout"]]
+    assert tx["vin"][0]["name_state"] == "past" and tx["kinds"] == ["name"]
+    made = chain().blocks[1]["tx"][1]["txid"]
+    assert [o["name_state"] for o in (await api.get(f"/api/v1/txs/{made}")).json()["vout"]] == [
+        "past", "active", "expired", None]
 
     blocks = (await api.get("/blocks")).text
     assert ">Age</th>" in blocks
@@ -121,3 +126,38 @@ async def test_long_names_are_cut_in_lists(pool):
         page = (await client.get(f"/name/{full}")).text
         assert f'<h1 class="wrap">{full[:119]}…</h1>' in page
         assert f'<pre class="value">{full}</pre>' in page and f"<title>{full[:59]}… · " in page
+
+
+async def test_tx_kinds(pool):
+    c = ChainBuilder("tk")
+    c.add_block([coinbase(A_, "100")], mint="100")
+    a0 = c.blocks[0]["tx"][0]["txid"]
+    c.add_block([coinbase(B_, "10"), TxSpec(vin=[(a0, 0)], version=NAME_TX, vout=[
+        name_out(1, FOO, 30), Out("0", None, script=b"\x6a\x04note", type="nulldata"), Out("99.98", A_)])],
+        mint="10")
+    t1 = c.blocks[1]["tx"][1]["txid"]
+    c.add_block([coinbase(B_, "10"),
+                 TxSpec(vin=[(RANDPAY_TXID.hex(), 0), (t1, 2)], vout=[Out("50", C_), Out("49.97", A_)]),
+                 TxSpec(vin=[(c.blocks[1]["tx"][0]["txid"], 0)], vout=[Out("9.99", C_)])], mint="10")
+    await sync(pool, FakeNode(c))
+    app = create_app(pool=pool)
+    async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://t") as client:
+        b1 = (await client.get("/api/v1/blocks/1")).json()
+        assert [t["kinds"] for t in b1["tx"]] == [[], ["name", "return"]]
+        b2 = (await client.get("/api/v1/blocks/2")).json()
+        assert [t["kinds"] for t in b2["tx"]] == [[], ["randpay"], []]
+        assert re.findall(r"</a></td>\s*<td>([a-z]+)</td>", (await client.get("/block/2")).text) == [
+            "coinbase", "randpay", "payment"]
+        assert "<td>name</td>" in (await client.get("/block/1")).text  # the first kind only
+        page = (await client.get(f"/tx/{t1}")).text
+        assert "<dt>Type</dt><dd>name, return</dd>" in page
+        assert (await client.get(f"/api/v1/txs/{t1}")).json()["kinds"] == ["name", "return"]
+        payment = b2["tx"][2]["txid"]
+        assert "<dt>Type</dt><dd>payment</dd>" in (await client.get(f"/tx/{payment}")).text
+
+        rich = (await client.get("/richlist")).text
+        assert ">Last transaction</th>" in rich and 'href="/richlist?sort=recent"' in rich
+        recent = (await client.get("/richlist?sort=recent")).text
+        # C_ got coins in block 2, A_ (the richest) last moved in block 2 too, B_ in block 1
+        assert recent.index(f">{B_}<") > recent.index(f">{C_}<")
+        assert (await client.get("/richlist?sort=nonsense")).status_code == 422

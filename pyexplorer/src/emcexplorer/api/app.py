@@ -15,7 +15,7 @@ from fastapi import APIRouter, FastAPI, HTTPException, Query, Request
 from ..amounts import format_units
 from ..nvs import OP_NAMES, as_text
 from ..rpc import RpcClient
-from .mempool import Mempool, NodeUnavailable, multisig_fields
+from .mempool import TX_KINDS, Mempool, NodeUnavailable, multisig_fields, tx_kinds
 
 HEX64 = re.compile(r"^[0-9a-fA-F]{64}$")
 ADDRESS = re.compile(r"^[0-9A-Za-z]{20,100}$")
@@ -156,10 +156,33 @@ async def block(
             limit,
         )
         nxt = await conn.fetchval("SELECT hash FROM blocks WHERE height = $1", row["height"] + 1)
+        kinds = await _block_tx_kinds(conn, [t["txid"] for t in txs])
     result = _block(row)
     result["nextblockhash"] = nxt.hex() if nxt else None
-    result["tx"] = [_tx_summary(t) for t in txs]
+    result["tx"] = [{**_tx_summary(t), "kinds": kinds.get(t["txid"], [])} for t in txs]
     return result
+
+
+async def _block_tx_kinds(conn: asyncpg.Connection, txids: list[bytes]) -> dict[bytes, list[str]]:
+    """tx_kinds of many transactions at once, from the index: every lookup is by primary key."""
+    rows = await conn.fetch(
+        """
+        SELECT txid, 'name' AS kind FROM name_ops WHERE txid = ANY($1::bytea[])
+        UNION
+        SELECT i.txid, 'name' FROM inputs i JOIN name_ops o ON o.txid = i.prev_txid AND o.n = i.prev_n
+        WHERE i.txid = ANY($1::bytea[])
+        UNION
+        SELECT txid, 'return' FROM outputs
+        WHERE txid = ANY($1::bytea[]) AND substring(script FROM 1 FOR 1) = '\\x6a'::bytea
+        UNION
+        SELECT txid, 'randpay' FROM inputs WHERE txid = ANY($1::bytea[]) AND is_randpay
+        """,
+        txids,
+    )
+    found: dict[bytes, set[str]] = {}
+    for r in rows:
+        found.setdefault(r["txid"], set()).add(r["kind"])
+    return {t: [k for k in TX_KINDS if k in s] for t, s in found.items()}
 
 
 @router.get("/txs/{txid}")
@@ -183,27 +206,31 @@ async def transaction(request: Request, txid: str) -> dict[str, Any]:
         )
         current = await conn.fetch(
             "SELECT name, txid, vout, deleted, expires_at FROM names WHERE name = ANY($1::bytea[])",
-            [n["name"] for n in names],
+            [n["name"] for n in names] + [r["name"] for r in spent_names],
         )
         block_hash = await conn.fetchval("SELECT hash FROM blocks WHERE height = $1", tx["height"])
         tip = await _tip(conn)
     in_names = {r["n"]: _bytes_field(r["name"]) for r in spent_names}
     out_names = {n["n"]: _bytes_field(n["name"]) for n in names}
     now = {r["name"]: r for r in current}
-    spent = {o["n"] for o in outs if o["spent_txid"]}
 
-    def name_state(op: asyncpg.Record) -> str | None:
-        """What became of the name this output carries: active, expired, deleted or spent."""
-        if op["n"] in spent:
-            return "spent"
-        cur = now.get(op["name"])
-        if cur is None or cur["txid"] != key or cur["vout"] != op["n"]:
-            return None  # the node's name index does not point here
+    def name_state(name: bytes, n: int | None) -> str | None:
+        """The name on output n of this transaction (None: on an input, spent).
+
+        active: the output holds the name now; past: an earlier output of a name
+        that is active elsewhere; expired, deleted: the name itself is gone.
+        """
+        cur = now.get(name)
+        if cur is None:
+            return None  # not in the node's name index
         if cur["deleted"]:
             return "deleted"
-        return "active" if cur["expires_at"] > tip else "expired"
+        if cur["expires_at"] <= tip:
+            return "expired"
+        return "active" if (cur["txid"], cur["vout"]) == (key, n) else "past"
 
-    out_states = {n["n"]: name_state(n) for n in names}
+    in_states = {r["n"]: name_state(r["name"], None) for r in spent_names}
+    out_states = {n["n"]: name_state(n["name"], n["n"]) for n in names}
     result = _tx_summary(tx)
     result.update(
         blockhash=block_hash.hex(),
@@ -221,7 +248,7 @@ async def transaction(request: Request, txid: str) -> dict[str, Any]:
                 "value": format_units(i["value"]),
                 "address": i["address"],
                 "name": in_names.get(i["n"]),
-                "name_state": "spent" if i["n"] in in_names else None,
+                "name_state": in_states.get(i["n"]),
             }
             for i in ins
         ],
@@ -255,6 +282,7 @@ async def transaction(request: Request, txid: str) -> dict[str, Any]:
             for n in names
         ],
     )
+    result["kinds"] = tx_kinds(result["vin"], result["vout"])
     return result
 
 
@@ -474,9 +502,19 @@ async def mempool_tx(request: Request, txid: str) -> dict[str, Any]:
 @router.get("/richlist")
 async def richlist(request: Request, limit: int = Query(100, ge=1, le=MAX_LIMIT)) -> list[dict[str, Any]]:
     rows = await _pool(request).fetch(
-        "SELECT address, balance FROM address_stats ORDER BY balance DESC LIMIT $1", limit
+        """
+        SELECT s.address, s.balance, s.last_height, b.time AS last_time
+        FROM (SELECT * FROM address_stats ORDER BY balance DESC LIMIT $1) s
+        JOIN blocks b ON b.height = s.last_height
+        ORDER BY s.balance DESC, s.address
+        """,
+        limit,
     )
-    return [{"address": r["address"], "balance": format_units(r["balance"])} for r in rows]
+    return [
+        {"address": r["address"], "balance": format_units(r["balance"]),
+         "last_height": r["last_height"], "last_time": r["last_time"]}  # of the latest transaction
+        for r in rows
+    ]
 
 
 @router.get("/names")

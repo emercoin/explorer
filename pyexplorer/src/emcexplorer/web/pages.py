@@ -270,9 +270,15 @@ async def name(request: Request, name: str) -> HTMLResponse:
 
 
 @router.get("/richlist", response_class=HTMLResponse)
-async def richlist(request: Request) -> HTMLResponse:
+async def richlist(
+    request: Request, sort: str = Query("balance", pattern="^(balance|recent)$")
+) -> HTMLResponse:
     rows = await api.richlist(request, limit=100)
-    return await _render(request, "richlist.html", rows=rows)
+    for rank, r in enumerate(rows, 1):
+        r["rank"] = rank
+    if sort == "recent":  # the same hundred, most recently active first
+        rows.sort(key=lambda r: r["last_height"], reverse=True)
+    return await _render(request, "richlist.html", rows=rows, sort=sort)
 
 
 def _sample(days: list[dict[str, Any]], every: int) -> list[dict[str, Any]]:

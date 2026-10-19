@@ -219,13 +219,13 @@ docker compose --env-file .env start indexer
 |---|---|
 | `GET /status` | высота индекса и ноды |
 | `GET /blocks?before=&limit=` | последние блоки |
-| `GET /blocks/{height или hash}?offset=&limit=` | блок со списком транзакций |
-| `GET /txs/{txid}` | транзакция: входы с суммами и адресами, выходы с «кем потрачен», операции NVS; у входа и выхода с именем есть `name` и `name_state` (`active`, `expired`, `deleted`, `spent`) |
+| `GET /blocks/{height или hash}?offset=&limit=` | блок со списком транзакций; у каждой `kinds` — что она делает помимо платежа: `name` (имя на входе или выходе), `return` (выход OP_RETURN), `randpay` (вход randpay), в этом порядке; пустой список — обычный платёж |
+| `GET /txs/{txid}` | транзакция: входы с суммами и адресами, выходы с «кем потрачен», операции NVS; `kinds` как у блока; у входа и выхода с именем есть `name` и `name_state`: `active` — имя сейчас на этом выходе, `past` — прошлый выход ещё активного имени, `expired`, `deleted` — имя истекло или удалено |
 | `GET /addresses/{addr}` | баланс, получено, отправлено, число транзакций |
 | `GET /addresses/{addr}/txs?before=<height:idx>&limit=` | история с курсорной пагинацией |
 | `GET /addresses/{addr}/utxo` | непотраченные выходы |
 | `GET /addresses/{addr}/multisig?limit=` | мультиподписные выходы, где адрес — один из ключей |
-| `GET /richlist?limit=` | крупнейшие адреса |
+| `GET /richlist?limit=` | крупнейшие адреса; `last_height` и `last_time` — блок и время последней транзакции адреса |
 | `GET /names?prefix=dns:&namespace=&after=&include_inactive=&sort=` | список и поиск имён: `sort=new` (по умолчанию) — сначала недавно изменённые, `sort=name` — по алфавиту; `after` — значение `next` прошлой страницы |
 | `GET /names/{name}` | текущее значение, владелец, срок действия; у истёкшего имени `expired_time` — время блока, на котором оно истекло |
 | `GET /names/{name}/history` | все операции с именем |

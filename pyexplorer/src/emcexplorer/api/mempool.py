@@ -48,6 +48,22 @@ def multisig_fields(addresses: list[str] | None, required: int | None) -> dict[s
     return {"addresses": addresses, "required": required}
 
 
+# What a transaction does besides paying, in the order it is named by: one kind
+# is shown in lists, all of them on the transaction page. None of them: a payment.
+TX_KINDS = ("name", "return", "randpay")
+
+
+def tx_kinds(vin: list[dict[str, Any]], vout: list[dict[str, Any]]) -> list[str]:
+    """Kinds of a transaction from its API inputs and outputs: a name on an input
+    or an output, an OP_RETURN output, a randpay input."""
+    found = {
+        "name": any(i.get("name") for i in vin) or any(o.get("name") for o in vout),
+        "return": any(o["script"].startswith("6a") for o in vout),
+        "randpay": any(i.get("randpay") for i in vin),
+    }
+    return [k for k in TX_KINDS if found[k]]
+
+
 def _fee(entry: dict[str, Any]) -> int:
     fee = entry.get("fee")
     if fee is None:
@@ -159,6 +175,12 @@ class Mempool:
                 })
             value_out = sum(o.value for o in tx.outputs)
             out_names = {no.n: _field(no.op.name) for no in tx.name_ops}
+            vout = [
+                {"n": o.n, "value": format_units(o.value), "type": o.script_type,
+                 "address": o.address, **multisig_fields(o.addresses, o.required),
+                 "script": o.script.hex(), "name": out_names.get(o.n), "spent_by": None}
+                for o in tx.outputs
+            ]
             result.append({
                 "txid": tx.txid.hex(),
                 "height": None,
@@ -172,13 +194,9 @@ class Mempool:
                 "version": tx.version,
                 "locktime": tx.locktime,
                 "depends": entry.get("depends", []),
+                "kinds": tx_kinds(vin, vout),
                 "vin": vin,
-                "vout": [
-                    {"n": o.n, "value": format_units(o.value), "type": o.script_type,
-                     "address": o.address, **multisig_fields(o.addresses, o.required),
-                     "script": o.script.hex(), "name": out_names.get(o.n), "spent_by": None}
-                    for o in tx.outputs
-                ],
+                "vout": vout,
                 "name_ops": [
                     {"vout": n.n, "op": OP_NAMES[n.op.op], "name": _field(n.op.name),
                      "value": _field(n.op.value), "days": n.op.days if n.op.days >= 0 else None,

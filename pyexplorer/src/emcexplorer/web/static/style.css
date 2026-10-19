@@ -8,6 +8,7 @@
   --accent: #7a3fe0;
   --pos: #11804a;
   --neg: #b4302a;
+  --past: #6b8e23;
   --pow: #9a5b00;
   --pos-tag: #1f6fb2;
   --series: #2a78d6;
@@ -24,6 +25,7 @@
     --accent: #a77bff;
     --pos: #4ccf8c;
     --neg: #ff7b72;
+    --past: #a8c77a;
     --pow: #e3a64a;
     --pos-tag: #6cb6ff;
     --series: #3987e5;
@@ -84,6 +86,7 @@ td.value { max-width: 28rem; }
 .muted, tr.muted td { color: var(--muted); }
 .pos { color: var(--pos); }
 .neg { color: var(--neg); }
+.past { color: var(--past); }
 .value { white-space: pre-wrap; overflow-wrap: anywhere; }
 pre.value { padding: .8rem; background: var(--head); border: 1px solid var(--line); border-radius: 6px; max-height: 30rem; overflow: auto; }
 

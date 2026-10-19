@@ -2,14 +2,18 @@
 {% block title %}Rich list · Emercoin explorer{% endblock %}
 {% block content %}
 <h1>Rich list</h1>
+<p class="sort">The 100 largest balances. Order:
+  {% if sort == "recent" %}<a href="/richlist">by balance</a> · <strong>last transaction first</strong>
+  {% else %}<strong>by balance</strong> · <a href="/richlist?sort=recent">last transaction first</a>{% endif %}</p>
 <div class="scroll"><table class="list">
-  <thead><tr><th>#</th><th>Address</th><th class="num">Balance, EMC</th></tr></thead>
+  <thead><tr><th>#</th><th>Address</th><th class="num">Balance, EMC</th><th>Last transaction</th></tr></thead>
   <tbody>
   {% for r in rows %}
     <tr>
-      <td>{{ loop.index }}</td>
+      <td>{{ r.rank }}</td>
       <td class="mono wrap"><a href="/address/{{ r.address }}">{{ r.address }}</a></td>
       <td class="num">{{ r.balance }}</td>
+      <td class="nowrap mono" title="{{ r.last_time | utc }} UTC, block {{ r.last_height }}">{{ r.last_time | age }}</td>
     </tr>
   {% endfor %}
   </tbody>
