@@ -19,6 +19,5 @@ Pull requests go to `develop`, from a branch named `feature/…`, `fix/…` or `
 
 ## The old PHP explorer
 
-The previous explorer (PHP and MySQL) is kept for reference and is no longer developed:
-[html/](html), [tools/](tools), `*.sql`, [INSTALL.txt](INSTALL.txt) and
-[crontab.txt](crontab.txt).
+The previous explorer (PHP and MySQL) has been removed from the tree; it is in the git
+history up to tag `v0.1.0`. Its `/api/...` routes are still served by the new explorer.

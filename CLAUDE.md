@@ -3,7 +3,7 @@
 Отвечать по-русски.
 
 Новый эксплорер на Python лежит в `pyexplorer/` (индексатор, API и сайт на FastAPI,
-PostgreSQL). Старая PHP-версия (`html/`, `tools/`, `*.sql`) не развивается.
+PostgreSQL). Старая PHP-версия удалена из дерева, она есть в истории до тега `v0.1.0`.
 Подробности: `pyexplorer/README.md`, запуск на сервере: `pyexplorer/docs/vps-run.md`.
 
 ## Ветки и PR
