@@ -1,5 +1,6 @@
 # Read-only look at the production server: container state, index height, disk,
-# recent health-check messages, or the tail of the indexer/api/migrate logs.
+# memory, recent health-check messages, or the tail of the indexer/api/migrate logs
+# (mainnet or testnet).
 # Run it from Actions -> explorer ops -> Run workflow, or through the API.
 #
 # Uses its own key pair, pinned on the server to pyexplorer/deploy/ops/status.sh
@@ -21,7 +22,8 @@ on:
         description: What to show
         type: choice
         default: status
-        options: [status, logs-indexer, logs-api, logs-migrate]
+        options: [status, logs-indexer, logs-api, logs-migrate,
+                  logs-indexer-testnet, logs-api-testnet, logs-migrate-testnet]
 
 permissions: {}
 

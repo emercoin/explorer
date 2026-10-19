@@ -6,7 +6,9 @@
 #
 # Checks out the same tag, so compose/Caddyfile always match the image, runs the
 # schema migration, then recreates indexer and api. The node, PostgreSQL and Caddy
-# are left running unless their compose definition changed.
+# are left running unless their compose definition changed. With the testnet
+# profile on (COMPOSE_PROFILES in .env), `up` updates the testnet services too;
+# migrate-testnet runs as their dependency.
 #
 # The CI key is pinned to this script in ~/.ssh/authorized_keys of the deploy user:
 #   command="/opt/explorer/pyexplorer/deploy/deploy-service.sh ${SSH_ORIGINAL_COMMAND##* }",restrict ssh-ed25519 AAAA... explorer-ci

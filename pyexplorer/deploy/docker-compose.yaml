@@ -6,6 +6,10 @@
 #   cp emercoin.conf.example emercoin.conf && cp .env.example .env   # fill both in
 #   docker compose --env-file .env up -d
 #
+# Testnet runs next to mainnet when the profile is on (COMPOSE_PROFILES=testnet in .env):
+# its own node, its own database in the same PostgreSQL, indexer and api. It
+# needs `docker volume create emer_explorer_testnet_chain` first.
+#
 # Only Caddy publishes ports. The node's RPC and PostgreSQL stay on the internal
 # network, so the RPC password never travels outside this host.
 name: explorer
@@ -23,6 +27,18 @@ x-explorer: &explorer
   environment:
     EMC_RPC_URL: http://explorer:${EMC_RPC_PASSWORD:?set EMC_RPC_PASSWORD in .env}@emc:6662/
     DATABASE_URL: postgresql://explorer:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}@postgres:5432/explorer
+    # mainnet=https://...,testnet=https://...: the network switch in the page header
+    EXPLORER_NETWORKS: ${EXPLORER_NETWORKS:-}
+
+x-explorer-testnet: &explorer-testnet
+  image: ghcr.io/emercoin/explorer:${EXPLORER_TAG:-latest}
+  logging: *logging
+  profiles: ["testnet"]
+  environment:
+    EMC_RPC_URL: http://explorer:${EMC_RPC_PASSWORD:?set EMC_RPC_PASSWORD in .env}@emc-testnet:6662/
+    DATABASE_URL: postgresql://explorer:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}@postgres:5432/explorer_testnet
+    EXPLORER_NETWORK: testnet
+    EXPLORER_NETWORKS: ${EXPLORER_NETWORKS:-}
 
 networks:
   default:
@@ -37,6 +53,9 @@ volumes:
     external: true
   pgdata:
     name: emer_explorer_pg
+    external: true
+  chain-testnet:
+    name: emer_explorer_testnet_chain
     external: true
   caddy_data:
   caddy_config:
@@ -102,6 +121,55 @@ services:
     restart: unless-stopped
     depends_on:
       migrate:
+        condition: service_completed_successfully
+
+  # Testnet (profile "testnet"). Same emercoin.conf as the mainnet node; rpcbind and
+  # rpcport go on the command line, which applies them on any network (newer
+  # emercoind reads them from the file for testnet only inside a [test] section).
+  # The P2P port is not published: the node syncs over its own outgoing connections.
+  emc-testnet:
+    image: emercoin/core:0.8.5
+    container_name: explorer-emc-testnet
+    profiles: ["testnet"]
+    restart: unless-stopped
+    logging: *logging
+    volumes:
+      - chain-testnet:/srv/emercoind
+      - ./emercoin.conf:/srv/emercoind/emercoin.conf:ro
+    stop_grace_period: 60s
+    command: >-
+      /bin/emercoind -testnet -datadir=/srv/emercoind -conf=/srv/emercoind/emercoin.conf
+      -printtoconsole -rpcbind=0.0.0.0 -rpcport=6662 -dbcache=64 -maxmempool=50
+
+  # Creates the explorer_testnet database on its first run.
+  migrate-testnet:
+    <<: *explorer-testnet
+    container_name: explorer-migrate-testnet
+    command: ["initdb"]
+    restart: "no"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  indexer-testnet:
+    <<: *explorer-testnet
+    container_name: explorer-indexer-testnet
+    command: ["index"]
+    restart: unless-stopped
+    stop_grace_period: 30s
+    depends_on:
+      migrate-testnet:
+        condition: service_completed_successfully
+      emc-testnet:
+        condition: service_started
+
+  api-testnet:
+    <<: *explorer-testnet
+    container_name: explorer-api-testnet
+    command: ["api", "--host", "0.0.0.0", "--port", "8000"]
+    restart: unless-stopped
+    depends_on:
+      migrate-testnet:
         condition: service_completed_successfully
 
   caddy:

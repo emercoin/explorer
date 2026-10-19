@@ -27,6 +27,47 @@
   `explorer3.emercoin.com`, TLS делает Cloudflare;
 * у PostgreSQL ограничена память и подобраны параметры (см. ниже).
 
+### Testnet: testnet3.emercoin.com
+
+Тот же стек с профилем `testnet` (см. «Testnet» в README): своя нода testnet,
+база `explorer_testnet` в том же PostgreSQL, `indexer-testnet`, `api-testnet` на
+`127.0.0.1:8001`. Запуск, в `/opt/explorer/pyexplorer/deploy`:
+
+1. `docker volume create emer_explorer_testnet_chain`.
+2. `emercoin.conf`: своя нода mainnet здесь выключена, поэтому файла может не быть.
+   Если его нет: `cp emercoin.conf.example emercoin.conf`, `rpcpassword` такой же,
+   как `EMC_RPC_PASSWORD` в `.env`. Без файла docker создаст на его месте каталог,
+   и нода не стартует.
+3. В `docker-compose.override.yaml` добавить блок testnet из
+   `docker-compose.override.example.yaml`: лимиты памяти и порт 8001.
+4. В `.env`:
+   ```
+   COMPOSE_PROFILES=testnet
+   EXPLORER_NETWORKS=mainnet=https://explorer3.emercoin.com,testnet=https://testnet3.emercoin.com
+   ```
+5. В nginx — сайт по образцу `explorer3.emercoin.com`, только на порт 8001:
+   ```nginx
+   server {
+       listen 80;
+       server_name testnet3.emercoin.com;
+       location / {
+           proxy_pass http://127.0.0.1:8001;
+           proxy_set_header Host $host;
+           proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+           proxy_set_header X-Forwarded-Proto $scheme;
+       }
+   }
+   ```
+   `nginx -t && systemctl reload nginx`. Запись в Cloudflare — как у explorer3.
+6. `docker compose --env-file .env up -d`: создаются база и схема, нода начинает
+   синхронизацию, индексатор идёт за ней. `api` и `indexer` mainnet при этом
+   пересоздаются (у них появилась `EXPLORER_NETWORKS`), это несколько секунд.
+
+Ход синхронизации и память видны в explorer ops → `status` (разделы
+`index testnet` и `memory`). Лимиты testnet в сумме 832 MB при 1.8 GB RAM хоста
+и 2 GB swap; если swap начнёт расти, testnet выключается удалением
+`COMPOSE_PROFILES` из `.env` и `docker compose --env-file .env up -d --remove-orphans`.
+
 ## Итоги сверки
 
 | Проверка | Результат |
