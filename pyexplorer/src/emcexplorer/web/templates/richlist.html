@@ -13,7 +13,7 @@
       <td>{{ r.rank }}</td>
       <td class="mono wrap"><a href="/address/{{ r.address }}">{{ r.address }}</a></td>
       <td class="num">{{ r.balance }}</td>
-      <td class="nowrap mono" title="{{ r.last_time | utc }} UTC, block {{ r.last_height }}">{{ r.last_time | age }}</td>
+      <td class="nowrap" title="{{ r.last_time | utc }} UTC, block {{ r.last_height }}">{{ r.last_time | since }}</td>
     </tr>
   {% endfor %}
   </tbody>
