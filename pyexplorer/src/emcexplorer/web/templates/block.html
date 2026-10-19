@@ -30,7 +30,7 @@
     <tr>
       <td>{{ t.index }}</td>
       <td class="mono"><a href="/tx/{{ t.txid }}">{{ t.txid | short(12) }}</a></td>
-      <td>{% if t.coinbase %}coinbase{% elif t.coinstake %}coinstake{% endif %}</td>
+      <td>{% if t.coinbase %}coinbase{% elif t.coinstake %}coinstake{% else %}{{ (t.kinds or ["payment"])[0] }}{% endif %}</td>
       <td class="num">{{ t.value_in }}</td>
       <td class="num">{{ t.value_out }}</td>
       <td class="num">{{ t.fee }}</td>
