@@ -61,6 +61,27 @@ def _age(ts: int | None) -> str:
     return f"{h}:{m:02}:{s:02}" if h else f"{m:02}:{s:02}"
 
 
+def _since(ts: int | None) -> str:
+    """Time since `ts` in the two largest units, for long spans: 6 years 335 days,
+    12 days 5 hours, 3 hours; minutes only within the last hour."""
+    if ts is None:
+        return ""
+    s = max(int(datetime.now(UTC).timestamp()) - ts, 0)
+    days, hours = s // 86400, s % 86400 // 3600
+
+    def unit(n: int, word: str) -> str:
+        return f"{n:,} {word}{'' if n == 1 else 's'}"
+
+    if days >= 365:
+        years, days = divmod(days, 365)
+        return unit(years, "year") + (f" {unit(days, 'day')}" if days else "")
+    if days:
+        return unit(days, "day") + (f" {unit(hours, 'hour')}" if hours else "")
+    if hours:
+        return unit(hours, "hour")
+    return f"{s // 60} min"
+
+
 # Characters a browser draws as nothing, or that reorder the text around them:
 # C0 and C1 controls, DEL, zero-width and bidirectional formatting marks.
 _INVISIBLE = re.compile("[\x00-\x1f\x7f-\x9f\u200b-\u200f\u202a-\u202e\u2060-\u2064\u2066-\u2069\ufeff]")
@@ -118,7 +139,7 @@ def _name_url(f: dict[str, Any]) -> str | None:
 
 
 templates.env.filters.update(
-    utc=_utc, ago=_ago, age=_age, short=_short, field=_field, name=_field, visible=_visible,
+    utc=_utc, ago=_ago, age=_age, since=_since, short=_short, field=_field, name=_field, visible=_visible,
     name_url=_name_url, name_status=_name_status,
 )
 
@@ -270,9 +291,15 @@ async def name(request: Request, name: str) -> HTMLResponse:
 
 
 @router.get("/richlist", response_class=HTMLResponse)
-async def richlist(request: Request) -> HTMLResponse:
+async def richlist(
+    request: Request, sort: str = Query("balance", pattern="^(balance|recent)$")
+) -> HTMLResponse:
     rows = await api.richlist(request, limit=100)
-    return await _render(request, "richlist.html", rows=rows)
+    for rank, r in enumerate(rows, 1):
+        r["rank"] = rank
+    if sort == "recent":  # the same hundred, most recently active first
+        rows.sort(key=lambda r: r["last_height"], reverse=True)
+    return await _render(request, "richlist.html", rows=rows, sort=sort)
 
 
 def _sample(days: list[dict[str, Any]], every: int) -> list[dict[str, Any]]:

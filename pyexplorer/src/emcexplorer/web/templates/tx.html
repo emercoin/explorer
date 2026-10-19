@@ -1,7 +1,10 @@
 {% extends "base.html" %}
 {% block title %}Transaction {{ t.txid | short(6) }} · Emercoin explorer{% endblock %}
-{# name state: green while the name is active here, red once spent, expired or deleted #}
-{% macro name_tag(f, state) %}{% set text = f | name %}{% set url = f | name_url %}{% set cls = "pos" if state == "active" else ("neg" if state else "") %}<span class="small" title="{{ text }}{% if state %} ({{ state }}){% endif %}">name: {% if url %}<a class="{{ cls }}" href="{{ url }}">{{ text | truncate(40, true, "…", 0) }}</a>{% else %}<span class="{{ cls }}">{{ text | truncate(40, true, "…", 0) }}</span>{% endif %}</span>{% endmacro %}
+{# name state: green where the name lives now, pale green on an earlier output of a name that is
+   still active, red once the name has expired or was deleted #}
+{% set name_classes = {"active": "pos", "past": "past", "expired": "neg", "deleted": "neg"} %}
+{% set name_titles = {"past": "earlier output, the name is active"} %}
+{% macro name_tag(f, state) %}{% set text = f | name %}{% set url = f | name_url %}{% set cls = name_classes.get(state, "") %}<span class="small" title="{{ text }}{% if state %} ({{ name_titles.get(state, state) }}){% endif %}">name: {% if url %}<a class="{{ cls }}" href="{{ url }}">{{ text | truncate(40, true, "…", 0) }}</a>{% else %}<span class="{{ cls }}">{{ text | truncate(40, true, "…", 0) }}</span>{% endif %}</span>{% endmacro %}
 {% block content %}
 <h1>Transaction</h1>
 <p class="mono wrap">{{ t.txid }}</p>
@@ -13,7 +16,7 @@
   <dt>Block</dt><dd><span class="tag pow">unconfirmed</span> in the <a href="/mempool">memory pool</a></dd>
   <dt>Received</dt><dd>{{ t.time | utc }} UTC ({{ t.time | ago }})</dd>
   {% endif %}
-  <dt>Type</dt><dd>{% if t.coinbase %}coinbase{% elif t.coinstake %}coinstake{% else %}regular{% endif %}</dd>
+  <dt>Type</dt><dd>{% if t.coinbase %}coinbase{% elif t.coinstake %}coinstake{% else %}{{ (t.kinds or ["payment"]) | join(", ") }}{% endif %}</dd>
   <dt>Input / output</dt><dd>{{ t.value_in if t.value_in is not none else "?" }} / {{ t.value_out }} EMC</dd>
   <dt>Fee</dt><dd>{{ t.fee }} EMC</dd>
   <dt>Size</dt><dd>{{ t.size }} bytes · version {{ t.version }} · locktime {{ t.locktime }}</dd>
