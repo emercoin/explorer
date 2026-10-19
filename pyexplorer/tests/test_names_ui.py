@@ -7,7 +7,7 @@ import httpx
 import pytest
 
 from emcexplorer.api.app import create_app
-from emcexplorer.web.pages import _age, _visible
+from emcexplorer.web.pages import _age, _since, _visible
 from fakenode import ChainBuilder, FakeNode, Out, TxSpec, name_script
 from test_indexer import A_, B_, C_, NAME_TX, RANDPAY_TXID, coinbase, sync
 
@@ -106,6 +106,13 @@ def test_visible_and_age():
     assert _age(now - 65) in ("01:05", "01:06")
     assert _age(now - 3 * 3600 - 7) in ("3:00:07", "3:00:08")
     assert _age(now - 2 * 86400 - 3600) == "2 d 01:00"
+    day = 86400
+    assert _since(now - (6 * 365 + 335) * day - 7200) == "6 years 335 days"
+    assert _since(now - 365 * day - 100) == "1 year"
+    assert _since(now - 12 * day - 5 * 3600 - 59) == "12 days 5 hours"
+    assert _since(now - day - 1800) == "1 day"
+    assert _since(now - 3 * 3600 - 600) == "3 hours"
+    assert _since(now - 125) in ("2 min", "3 min")
 
 
 async def test_long_names_are_cut_in_lists(pool):
