@@ -149,6 +149,29 @@ docker compose --env-file .env up -d --build    # до первого релиз
 `getinfo` не вызывайте: emercoind 0.8.5 с `disablewallet=1` падает на нём по
 SIGSEGV. Для проверки ноды есть `getblockchaininfo`.
 
+### Testnet
+
+Эксплорер testnet — второй экземпляр того же стека в том же compose, профиль
+`testnet`: нода `emc-testnet` (`emercoind -testnet`, тот же `emercoin.conf`),
+база `explorer_testnet` в том же PostgreSQL (её создаёт `migrate-testnet`),
+`indexer-testnet` и `api-testnet`. Код один и тот же: адреса и типы скриптов
+берутся у ноды, сеть он не различает. `EXPLORER_NETWORK=testnet` только ставит
+метку в шапке и поле `network` в `/api/v1/status`.
+
+```bash
+docker volume create emer_explorer_testnet_chain
+# в .env:
+#   COMPOSE_PROFILES=testnet
+#   EXPLORER_NETWORKS=mainnet=https://explorer3.emercoin.com,testnet=https://testnet3.emercoin.com
+docker compose --env-file .env up -d
+```
+
+`EXPLORER_NETWORKS` включает переключатель Mainnet | Testnet в шапке обоих сайтов.
+Наружу `api-testnet` публикуется так же, как `api`: через override и хостовый
+nginx (порт 8001, см. [docs/vps-run.md](docs/vps-run.md)) или вторым сайтом в
+Caddyfile. `deploy-service.sh` обновляет testnet вместе с mainnet: сервисы
+профиля поднимаются тем же `docker compose up`.
+
 ### Релизы
 
 Тег `vX.Y.Z` (версия должна совпадать с `pyproject.toml`) запускает
@@ -173,8 +196,9 @@ workflow) на нужной ветке: workflow возьмёт версию и�
 одной ветки идут по очереди, так что более старая сборка не перекроет новую.
 
 Посмотреть состояние сервера без входа на него можно через
-`.github/workflows/explorer-ops.yml` (ручной запуск): контейнеры, высота индекса,
-диск, последние сообщения health-check или хвост логов `indexer`/`api`/`migrate`.
+`.github/workflows/explorer-ops.yml` (ручной запуск): контейнеры, высота индекса
+(и testnet, если он запущен), диск, память, последние сообщения health-check или
+хвост логов `indexer`/`api`/`migrate` mainnet и testnet.
 Он ходит отдельным ключом `OPS_SSH_KEY`, который на сервере привязан к
 `deploy/ops/status.sh` (строка для `authorized_keys` есть в скрипте) и больше
 ничего выполнить не может. Репозиторий публичный, лог workflow тоже, поэтому
@@ -217,7 +241,7 @@ docker compose --env-file .env start indexer
 
 | Маршрут | Что возвращает |
 |---|---|
-| `GET /status` | высота индекса и ноды |
+| `GET /status` | высота индекса и ноды; `network` — `mainnet` или `testnet` |
 | `GET /blocks?before=&limit=` | последние блоки |
 | `GET /blocks/{height или hash}?offset=&limit=` | блок со списком транзакций; у каждой `kinds` — что она делает помимо платежа: `name` (имя на входе или выходе), `return` (выход OP_RETURN), `randpay` (вход randpay), в этом порядке; пустой список — обычный платёж |
 | `GET /txs/{txid}` | транзакция: входы с суммами и адресами, выходы с «кем потрачен», операции NVS; `kinds` как у блока; у входа и выхода с именем есть `name` и `name_state`: `active` — имя сейчас на этом выходе, `past` — прошлый выход ещё активного имени, `expired`, `deleted` — имя истекло или удалено |
@@ -288,8 +312,10 @@ randpay, `name_new`/`name_update`) и проверяют балансы, эми�
 
 ## Что ещё не сделано
 
-* **Прогон на testnet.** Mainnet проиндексирован с нуля и сверен с нодой
+* **Сверка на testnet.** Mainnet проиндексирован с нуля и сверен с нодой
   (эмиссия, число транзакций, имена), см. [docs/vps-run.md](docs/vps-run.md).
+  Стек для testnet готов (см. «Testnet»), сверить его с нодой предстоит после
+  первого запуска.
   Первичная синхронизация на одном ядре занимает около 1 ч 46 мин, поэтому запись
   пачками пока не нужна.
 * Кэш в приложении. Пока не понадобился: запросы идут по индексам. Ответы

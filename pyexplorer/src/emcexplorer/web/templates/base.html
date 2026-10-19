@@ -11,12 +11,13 @@
 <body>
 <header>
   <nav>
-    <a class="brand" href="/">Emercoin explorer</a>
+    <a class="brand" href="/">Emercoin explorer</a>{% if network.name != "mainnet" %} <span class="tag pow">{{ network.name | capitalize }}</span>{% endif %}
     <a href="/blocks">Blocks</a>
     <a href="/mempool">Mempool</a>
     <a href="/names">Names</a>
     <a href="/richlist">Rich list</a>
     <a href="/stats">Statistics</a>
+    {% if network.links %}<span class="networks">{% for name, url in network.links %}{% if name == network.name %}<strong>{{ name | capitalize }}</strong>{% else %}<a href="{{ url }}">{{ name | capitalize }}</a>{% endif %}{% if not loop.last %} | {% endif %}{% endfor %}</span>{% endif %}
   </nav>
   <form class="search" action="/search" method="get" role="search">
     <input type="search" name="q" placeholder="Block, transaction, address or name" aria-label="Search"

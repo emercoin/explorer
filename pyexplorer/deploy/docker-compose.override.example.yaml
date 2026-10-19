@@ -7,7 +7,9 @@
 #   * the stack's own node and Caddy are disabled (profile "own-node"/"caddy");
 #   * indexer and api reach emc-public's RPC over the private network emc-rpc;
 #   * api is published on 127.0.0.1:8000 only; the host nginx proxies
-#     explorer3.emercoin.com to it (TLS is done by Cloudflare).
+#     explorer3.emercoin.com to it (TLS is done by Cloudflare);
+#   * with the testnet profile on, api-testnet is on 127.0.0.1:8001 for
+#     testnet3.emercoin.com.
 
 x-rpc-env: &rpc-env
   EMC_RPC_URL: http://explorer:${EMC_RPC_PASSWORD}@emc-public:6662/
@@ -64,3 +66,16 @@ services:
     networks: [default, emc-rpc]
     ports:
       - "127.0.0.1:8000:8000"
+
+  # Testnet (COMPOSE_PROFILES=testnet in .env). Its chain is small, so the node
+  # gets a small cache; the limits keep the host's 1.8 GB for mainnet first.
+  emc-testnet:
+    mem_limit: 384m
+
+  indexer-testnet:
+    mem_limit: 256m
+
+  api-testnet:
+    mem_limit: 192m
+    ports:
+      - "127.0.0.1:8001:8000"

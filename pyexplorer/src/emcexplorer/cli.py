@@ -20,8 +20,10 @@ def _database_url() -> str:
 async def _initdb(database_url: str) -> None:
     import asyncpg
 
-    from .db import init_schema
+    from .db import create_database, init_schema
 
+    if await create_database(database_url):
+        logging.getLogger(__name__).info("created the database")
     conn = await asyncpg.connect(database_url)
     try:
         await init_schema(conn)
@@ -45,7 +47,7 @@ async def _index(settings: Settings) -> None:
 def main() -> None:
     parser = argparse.ArgumentParser(prog="emcexplorer")
     sub = parser.add_subparsers(dest="command", required=True)
-    sub.add_parser("initdb", help="create tables (idempotent)")
+    sub.add_parser("initdb", help="create the database and tables (idempotent)")
     sub.add_parser("index", help="run the indexer")
     api = sub.add_parser("api", help="run the HTTP API")
     api.add_argument("--host", default="127.0.0.1")

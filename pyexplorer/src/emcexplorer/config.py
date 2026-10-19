@@ -36,3 +36,20 @@ class Settings:
             max_reorg_depth=int(os.environ.get("EMC_MAX_REORG_DEPTH", cls.max_reorg_depth)),
             rpc_timeout=float(os.environ.get("EMC_RPC_TIMEOUT", cls.rpc_timeout)),
         )
+
+
+def network_name() -> str:
+    """The network this explorer shows (EXPLORER_NETWORK): mainnet unless set."""
+    return os.environ.get("EXPLORER_NETWORK", "mainnet")
+
+
+def network_links() -> list[tuple[str, str]]:
+    """Explorers of every network, for the switch in the page header, from
+    EXPLORER_NETWORKS="mainnet=https://explorer3.emercoin.com,testnet=https://testnet3.emercoin.com".
+    Empty: no switch."""
+    links = []
+    for item in os.environ.get("EXPLORER_NETWORKS", "").split(","):
+        name, sep, url = item.partition("=")
+        if sep and name.strip() and url.strip():
+            links.append((name.strip(), url.strip()))
+    return links
