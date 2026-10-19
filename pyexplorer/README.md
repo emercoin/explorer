@@ -146,9 +146,6 @@ docker compose --env-file .env up -d --build    # до первого релиз
 лежат в `docker-compose.override.example.yaml`, подробности в
 [docs/vps-run.md](docs/vps-run.md)).
 
-`getinfo` не вызывайте: emercoind 0.8.5 с `disablewallet=1` падает на нём по
-SIGSEGV. Для проверки ноды есть `getblockchaininfo`.
-
 ### Testnet
 
 Эксплорер testnet — второй экземпляр того же стека в том же compose, профиль
@@ -282,8 +279,7 @@ SQL-запросы параметризованы, входные хэши и а
 * ошибки — `{"error": ...}` с кодом 200;
 * JSON с отступами.
 
-`coin_supply` берётся из `supply` последнего блока, а не из `getinfo`: на нём
-нода падает.
+`coin_supply` берётся из `supply` последнего блока, без обращения к ноде.
 
 Отличия от PHP-версии:
 * Поля, которых в новом индексе нет, равны `null`: coin-days destroyed,

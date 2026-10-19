@@ -9,8 +9,8 @@
 # them changes anything on the host.
 #
 # The repository is public, so whatever this prints ends up in a public Actions
-# log. That is why node and Caddy logs (peer and visitor IP addresses) and
-# anything from .env are never printed.
+# log. That is why node and Caddy logs (peer and visitor IP addresses), anything
+# from .env, the host's name and containers outside this stack are never printed.
 set -uo pipefail
 
 read -r action _ <<<"${SSH_ORIGINAL_COMMAND:-${1:-status}}"
@@ -48,8 +48,13 @@ case "$action" in
     fi
     echo "== disk";         df -h --output=size,used,avail,pcent / | sed 's/^/  /'
     echo "== memory";       free -m | sed 's/^/  /'
-    docker stats --no-stream --format 'table {{.Name}}\t{{.MemUsage}}\t{{.CPUPerc}}' | sed 's/^/  /'
-    echo "== health";       journalctl -t explorer-health -n 10 --no-pager -o short-iso 2>/dev/null || true
+    # this stack's containers only, not whatever else runs on the host
+    mapfile -t ids < <("${COMPOSE[@]}" ps -q)
+    [ "${#ids[@]}" -gt 0 ] &&
+      docker stats --no-stream --format 'table {{.Name}}\t{{.MemUsage}}\t{{.CPUPerc}}' "${ids[@]}" | sed 's/^/  /'
+    echo "== health"  # message and time only: the journal's host column and the host name in the text stay out
+    journalctl -t explorer-health -n 10 --no-pager -o short-iso 2>/dev/null |
+      sed -E "s/^(\S+) \S+ [^:]+: /\1 /; s/ on $(hostname)//" || true
     ;;
   logs-*)
     "${COMPOSE[@]}" logs --no-color --timestamps --tail 200 "${action#logs-}"

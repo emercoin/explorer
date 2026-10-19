@@ -1,40 +1,35 @@
-# Первый прогон на VPS (mainnet, 14.10.2026)
+# Прогон на VPS (mainnet, 14.10.2026)
 
-Полная синхронизация индекса с нуля на боевом сервере и сверка результата с нодой.
+Полная синхронизация индекса с нуля на небольшом VPS и сверка результата с нодой.
 
 ## Стенд
 
 | | |
 |---|---|
-| Хост | VPS emc-relay-1: 1 vCPU, 1.8 GB RAM, SSD 20 GB, Debian 13 |
-| Swap | 2 GB (добавлен для прогона, `vm.swappiness=10`) |
-| Нода | `emc-public`, `emercoin/core:0.8.5`, уже синхронизирована, txindex включён |
-| Соседи | nginx сайта emercoin.com на :80 (за Cloudflare) |
-| Код | ветка `feature/python-indexer`, образ собран на месте |
+| Хост | 1 vCPU, 1.8 GB RAM, SSD 20 GB, swap 2 GB |
+| Нода | `emercoin/core:0.8.5`, уже синхронизирована, txindex включён |
 | Цепочка | 816 138 блоков, 1 981 643 транзакции, 260 753 NVS-операции |
 
 ### Отличия от `deploy/docker-compose.yaml`
 
-На хосте уже работают публичная нода (порт 6661) и nginx (порт 80), поэтому
-стек поднят с `deploy/docker-compose.override.yaml` (шаблон:
+Если на хосте уже есть нода и веб-сервер, стек поднимается с
+`deploy/docker-compose.override.yaml` (не в git; шаблон —
 `docker-compose.override.example.yaml`):
 
 * своя нода (`emc`) и Caddy выключены через `profiles`;
-* `indexer` и `api` ходят в RPC существующей ноды по отдельной сети `emc-rpc`
-  (`172.28.1.0/24`). У ноды добавлены `rpcbind=0.0.0.0`, `rpcallowip=172.28.1.0/24`
-  и пользователь `explorer` через `rpcauth`. Порт RPC на хост не публикуется;
-* `api` слушает `127.0.0.1:8000`. Хостовый nginx проксирует на него
-  `explorer3.emercoin.com`, TLS делает Cloudflare;
+* `indexer` и `api` ходят в RPC существующей ноды по отдельной docker-сети;
+  порт RPC на хост не публикуется;
+* `api` слушает только `127.0.0.1:8000`, наружу его отдаёт веб-сервер хоста;
 * у PostgreSQL ограничена память и подобраны параметры (см. ниже).
 
-### Testnet: testnet3.emercoin.com
+### Testnet
 
 Тот же стек с профилем `testnet` (см. «Testnet» в README): своя нода testnet,
 база `explorer_testnet` в том же PostgreSQL, `indexer-testnet`, `api-testnet` на
 `127.0.0.1:8001`. Запуск, в `/opt/explorer/pyexplorer/deploy`:
 
 1. `docker volume create emer_explorer_testnet_chain`.
-2. `emercoin.conf`: своя нода mainnet здесь выключена, поэтому файла может не быть.
+2. `emercoin.conf`: если своя нода mainnet выключена, файла может не быть.
    Если его нет: `cp emercoin.conf.example emercoin.conf`, `rpcpassword` такой же,
    как `EMC_RPC_PASSWORD` в `.env`. Без файла docker создаст на его месте каталог,
    и нода не стартует.
@@ -45,7 +40,7 @@
    COMPOSE_PROFILES=testnet
    EXPLORER_NETWORKS=mainnet=https://explorer3.emercoin.com,testnet=https://testnet3.emercoin.com
    ```
-5. В nginx — сайт по образцу `explorer3.emercoin.com`, только на порт 8001:
+5. На веб-сервере хоста — сайт testnet на порт 8001, например для nginx:
    ```nginx
    server {
        listen 80;
@@ -58,14 +53,13 @@
        }
    }
    ```
-   `nginx -t && systemctl reload nginx`. Запись в Cloudflare — как у explorer3.
+   `nginx -t && systemctl reload nginx`.
 6. `docker compose --env-file .env up -d`: создаются база и схема, нода начинает
    синхронизацию, индексатор идёт за ней. `api` и `indexer` mainnet при этом
    пересоздаются (у них появилась `EXPLORER_NETWORKS`), это несколько секунд.
 
 Ход синхронизации и память видны в explorer ops → `status` (разделы
-`index testnet` и `memory`). Лимиты testnet в сумме 832 MB при 1.8 GB RAM хоста
-и 2 GB swap; если swap начнёт расти, testnet выключается удалением
+`index testnet` и `memory`). Лимиты testnet в сумме 832 MB; если swap начнёт расти, testnet выключается удалением
 `COMPOSE_PROFILES` из `.env` и `docker compose --env-file .env up -d --remove-orphans`.
 
 ## Итоги сверки
@@ -87,9 +81,6 @@ RPC, возвращающего его для произвольного бло�
 блоков проверялось поле `mint`. При реорге в лог попадают оба варианта
 блока, поэтому брать надо последнее значение для высоты. На 814232 был реорг
 на один блок.
-
-Скрипт сверки сохранён на сервере в `/root/explorer-run/check.py` (запускать
-внутри контейнера `api`).
 
 ## Найденные ошибки (исправлены в этой ветке)
 
@@ -115,13 +106,6 @@ RPC, возвращающего его для произвольного бло�
    работает для `ORDER BY name_text`. Заменён на индекс `(name_text COLLATE "C")`,
    запрос тоже идёт в `COLLATE "C"`: `/names?prefix=dns:` ускорился с 68 до 2 мс.
    Сортировка списка теперь побайтовая.
-
-## Ошибка ноды: `getinfo` роняет emercoind
-
-`getinfo` на `emercoin/core:0.8.5` с `disablewallet=1` завершает процесс по
-SIGSEGV. Это воспроизводится каждый раз, docker перезапускает контейнер примерно
-за минуту. Эксплорер `getinfo` не вызывает. Для проверки ноды используйте
-`getblockchaininfo`. Об ошибке стоит сообщить в emercoin/emercoin.
 
 ## Замеры
 
@@ -225,7 +209,5 @@ Load average 2.1 (максимум 2.9) на одном ядре. Swap заня�
     Но `\u0080`–`\u00FF` по-прежнему читаются как отдельные байты (так задумано
     для совместимости с json_spirit), поэтому сырой UTF-8 в `RpcClient` нужен и с
     новой нодой;
-  * `getinfo` при `disablewallet=1` в develop **не исправлен**: в `src/rpc/misc.cpp`
-    строки `paytxfee` и `encrypted` обращаются к `wallet` без проверки на `nullptr`;
   * пакетные ответы в develop по-прежнему пишутся legacy-кодировщиком
     (`JSONRPCExecBatch`), а одиночные нет. `store._same_name` это учитывает.
